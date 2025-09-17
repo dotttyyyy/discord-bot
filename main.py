@@ -108,6 +108,18 @@ class VerificationView(discord.ui.View):
                     inline=False
                 )
                 
+                success_embed.add_field(
+                    name="ℹ️ Guild Tag Updates",
+                    value="Note: Our guild tag may change **icon/color** over time, but will always keep the **DMA** name. Continue representing the DMA tag regardless of visual updates.",
+                    inline=False
+                )
+                
+                success_embed.add_field(
+                    name="🆘 Need Support?",
+                    value="Contact our support team: <#1399534470029115443>",
+                    inline=False
+                )
+                
                 success_embed.set_footer(text="Welcome to the gen! We hope you enjoy your time here.")
                 success_embed.set_thumbnail(url=user.display_avatar.url)
 
@@ -157,6 +169,18 @@ class VerificationView(discord.ui.View):
             denial_embed.add_field(
                 name="🔄 Can I Reapply?",
                 value="You may submit a new application with a clearer screenshot if you believe this was an error. Please ensure your guild tag is clearly visible and meets all requirements.",
+                inline=False
+            )
+            
+            denial_embed.add_field(
+                name="ℹ️ Remember",
+                value="We're looking for the **DMA** guild tag name. The icon/color may change, but the DMA text should be visible.",
+                inline=False
+            )
+            
+            denial_embed.add_field(
+                name="🆘 Need Support?",
+                value="Contact our support team: <#1399534470029115443>",
                 inline=False
             )
             
@@ -271,7 +295,7 @@ async def handle_dm(message):
             inline=False
         )
         
-        welcome_embed.set_image(url="https://dottystore.e-z.tools/ru9kyhhl.gif")
+        welcome_embed.set_image(url="https://r2.e-z.host/dbb0a9f7-2339-44f0-b6e7-69743e508106/ru9kyhhl.gif")
         welcome_embed.set_footer(text="Please attach your verification screenshot to your next message")
         
         await message.reply(embed=welcome_embed)
@@ -355,56 +379,68 @@ async def handle_dm(message):
     # Enhanced admin notification
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if not admin_channel:
-        print(f"Warning: Could not find admin channel {ADMIN_CHANNEL_ID}")
+        print(f"ERROR: Could not find admin channel {ADMIN_CHANNEL_ID}")
+        # Try to send error message to user
+        await message.reply("⚠️ **System Error**: Could not reach admin team. Please try again later or contact support.")
         return
     
-    # Calculate account age
-    account_age = datetime.now() - user.created_at
-    join_date = member.joined_at
+    print(f"DEBUG: Sending verification to admin channel: {admin_channel.name}")
     
-    admin_embed = discord.Embed(
-        title="🔍 New Guild Tag Verification Request",
-        color=discord.Color.blue(),
-        timestamp=datetime.now()
-    )
+    try:
     
-    admin_embed.add_field(
-        name="👤 User Information",
-        value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
-        inline=True
-    )
-    
-    admin_embed.add_field(
-        name="📊 Account Details",
-        value=f"**Created:** {user.created_at.strftime('%b %d, %Y')}\n**Joined Server:** {join_date.strftime('%b %d, %Y') if join_date else 'Unknown'}\n**Account Age:** {account_age.days} days",
-        inline=True
-    )
-    
-    admin_embed.add_field(
-        name="📷 Verification Image",
-        value="Screenshot attached below",
-        inline=False
-    )
-    
-    admin_embed.set_image(url=attachment.url)
-    admin_embed.set_thumbnail(url=user.display_avatar.url)
-    admin_embed.set_footer(text="Guild Tag Verification System", icon_url=bot.user.display_avatar.url)
-    
-    view = VerificationView(user.id, None)
-    admin_message = await admin_channel.send(embed=admin_embed, view=view)
-    
-    # Store pending verification
-    pending[str(user.id)] = {
-        "timestamp": datetime.now().isoformat(),
-        "admin_message_id": admin_message.id,
-        "image_url": attachment.url,
-        "user_info": {
-            "username": f"{user.name}#{user.discriminator}",
-            "created_at": user.created_at.isoformat(),
-            "joined_at": join_date.isoformat() if join_date else None
+    try:
+        # Calculate account age
+        account_age = datetime.now() - user.created_at
+        join_date = member.joined_at
+        
+        admin_embed = discord.Embed(
+            title="🔍 New Guild Tag Verification Request",
+            color=discord.Color.blue(),
+            timestamp=datetime.now()
+        )
+        
+        admin_embed.add_field(
+            name="👤 User Information",
+            value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
+            inline=True
+        )
+        
+        admin_embed.add_field(
+            name="📊 Account Details",
+            value=f"**Created:** {user.created_at.strftime('%b %d, %Y')}\n**Joined Server:** {join_date.strftime('%b %d, %Y') if join_date else 'Unknown'}\n**Account Age:** {account_age.days} days",
+            inline=True
+        )
+        
+        admin_embed.add_field(
+            name="📷 Verification Image",
+            value="Screenshot attached below",
+            inline=False
+        )
+        
+        admin_embed.set_image(url=attachment.url)
+        admin_embed.set_thumbnail(url=user.display_avatar.url)
+        admin_embed.set_footer(text="Guild Tag Verification System", icon_url=bot.user.display_avatar.url)
+        
+        view = VerificationView(user.id, None)
+        admin_message = await admin_channel.send(embed=admin_embed, view=view)
+        print(f"SUCCESS: Admin message sent with ID: {admin_message.id}")
+        
+        # Store pending verification
+        pending[str(user.id)] = {
+            "timestamp": datetime.now().isoformat(),
+            "admin_message_id": admin_message.id,
+            "image_url": attachment.url,
+            "user_info": {
+                "username": f"{user.name}#{user.discriminator}",
+                "created_at": user.created_at.isoformat(),
+                "joined_at": join_date.isoformat() if join_date else None
+            }
         }
-    }
-    save_pending(pending)
+        save_pending(pending)
+        
+    except Exception as e:
+        print(f"ERROR sending to admin channel: {e}")
+        await message.reply("⚠️ **System Error**: Could not process your verification. Please try again later or contact support.")
 
 # Admin commands
 @bot.command(name='pending')
