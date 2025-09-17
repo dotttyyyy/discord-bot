@@ -78,59 +78,115 @@ class VerificationView(discord.ui.View):
             try:
                 await member.add_roles(role)
                 
-                # Send success DM to user
-                success_message = f"""🎉 **Congratulations!**
-
-You have been approved and granted the **@{ROLE_NAME}** role!
-
-Please head over to <#{CHANNEL_LINK.split('/')[-1]}> to access your new channel.
-
-**Important Notice:** If you remove your guild tag while holding this role, you will be blacklisted from future gen applications. We ask all members to proudly represent our guild tag as it helps promote our community.
-
-Welcome to the gen! We hope you enjoy your time here."""
-
-                try:
-                    await user.send(success_message)
-                except discord.Forbidden:
-                    pass  # User has DMs disabled
-                
-                # Update admin channel
-                embed = discord.Embed(
-                    title="✅ Verification Approved", 
-                    description=f"**User:** {user.mention}\n**Role:** @{ROLE_NAME}\n**Admin:** {interaction.user.mention}",
+                # Send enhanced success DM to user
+                success_embed = discord.Embed(
+                    title="🎉 Verification Approved!",
+                    description=f"Congratulations! You have been granted the **@{ROLE_NAME}** role.",
                     color=discord.Color.green(),
                     timestamp=datetime.now()
                 )
                 
-                await interaction.response.edit_message(embed=embed, view=None)
+                success_embed.add_field(
+                    name="✅ Next Steps",
+                    value=f"Please head over to <#{CHANNEL_LINK.split('/')[-1]}> to access your new channel.",
+                    inline=False
+                )
+                
+                success_embed.add_field(
+                    name="⚠️ IMPORTANT RULES",
+                    value="**By accepting this role, you agree to:**\n"
+                          "• Keep your guild tag equipped at all times while holding this role\n"
+                          "• Represent our guild proudly and honestly\n"
+                          "• NOT remove your guild tag while using gen privileges\n\n"
+                          "**⚡ BLACKLIST WARNING:** Removing your guild tag while holding the gen role will result in an **immediate and permanent blacklist** from all future applications.",
+                    inline=False
+                )
+                
+                success_embed.add_field(
+                    name="🤝 Community Guidelines",
+                    value="We ask all gen members to proudly display our guild tag as it helps promote our community. This is a privilege, not a right - please respect it!",
+                    inline=False
+                )
+                
+                success_embed.set_footer(text="Welcome to the gen! We hope you enjoy your time here.")
+                success_embed.set_thumbnail(url=user.display_avatar.url)
+
+                try:
+                    await user.send(embed=success_embed)
+                except discord.Forbidden:
+                    pass  # User has DMs disabled
+                
+                # Enhanced admin success embed
+                success_admin_embed = discord.Embed(
+                    title="✅ Verification Approved", 
+                    color=discord.Color.green(),
+                    timestamp=datetime.now()
+                )
+                success_admin_embed.add_field(
+                    name="User Details",
+                    value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
+                    inline=True
+                )
+                success_admin_embed.add_field(
+                    name="Action Details",
+                    value=f"**Role Given:** @{ROLE_NAME}\n**Admin:** {interaction.user.mention}\n**Status:** Successfully processed",
+                    inline=True
+                )
+                success_admin_embed.set_thumbnail(url=user.display_avatar.url)
+                success_admin_embed.set_footer(text="Guild Tag Verification System")
+                
+                await interaction.response.edit_message(embed=success_admin_embed, view=None)
                 
             except discord.Forbidden:
                 await interaction.response.send_message("❌ I don't have permission to assign roles!", ephemeral=True)
         else:
-            # Send denial DM
-            denial_message = """❌ **Verification Denied**
-
-Your guild tag verification request has been denied. This could be due to:
-• Invalid or unclear screenshot
-• Guild tag not clearly visible
-• Not meeting current requirements
-
-You may try again with a clearer screenshot if needed."""
-
-            try:
-                await user.send(denial_message)
-            except discord.Forbidden:
-                pass
-            
-            # Update admin channel
-            embed = discord.Embed(
-                title="❌ Verification Denied", 
-                description=f"**User:** {user.mention}\n**Admin:** {interaction.user.mention}",
+            # Enhanced denial message
+            denial_embed = discord.Embed(
+                title="❌ Verification Denied",
+                description="Your guild tag verification request has been denied by our admin team.",
                 color=discord.Color.red(),
                 timestamp=datetime.now()
             )
             
-            await interaction.response.edit_message(embed=embed, view=None)
+            denial_embed.add_field(
+                name="Common Reasons for Denial",
+                value="• Guild tag not clearly visible or legible\n• Screenshot quality too poor\n• Guild tag does not match our requirements\n• Suspicious or edited image\n• Account does not meet our standards",
+                inline=False
+            )
+            
+            denial_embed.add_field(
+                name="🔄 Can I Reapply?",
+                value="You may submit a new application with a clearer screenshot if you believe this was an error. Please ensure your guild tag is clearly visible and meets all requirements.",
+                inline=False
+            )
+            
+            denial_embed.set_footer(text="If you believe this was a mistake, please contact an admin directly.")
+
+            try:
+                await user.send(embed=denial_embed)
+            except discord.Forbidden:
+                pass
+            
+            # Enhanced admin denial embed
+            denial_admin_embed = discord.Embed(
+                title="❌ Verification Denied", 
+                color=discord.Color.red(),
+                timestamp=datetime.now()
+            )
+            denial_admin_embed.add_field(
+                name="User Details",
+                value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
+                inline=True
+            )
+            denial_admin_embed.add_field(
+                name="Action Details",
+                value=f"**Admin:** {interaction.user.mention}\n**Status:** Denied",
+                inline=True
+            )
+            denial_admin_embed.set_thumbnail(url=user.display_avatar.url)
+            denial_admin_embed.set_footer(text="Guild Tag Verification System")
+            
+            await interaction.response.edit_message(embed=denial_admin_embed, view=None)
         
         # Remove from pending
         pending = load_pending()
@@ -177,59 +233,176 @@ async def handle_dm(message):
     
     # Check for attachments (screenshots)
     if not message.attachments:
-        await message.reply("""📸 **Guild Tag Verification**
-
-To verify your guild tag, please send a screenshot showing:
-• Your Discord profile with the guild tag clearly visible
-• Make sure the tag is legible and matches our guild
-
-Please attach the screenshot to your next message.""")
+        # Send welcome embed with rules and tutorial
+        welcome_embed = discord.Embed(
+            title="🏷️ Guild Tag Verification",
+            description="Welcome to our guild tag verification system!",
+            color=discord.Color.gold(),
+            timestamp=datetime.now()
+        )
+        
+        welcome_embed.add_field(
+            name="📋 Requirements",
+            value="• You must have our guild tag equipped\n• Screenshot must clearly show the tag\n• Tag must be visible and legible",
+            inline=False
+        )
+        
+        welcome_embed.add_field(
+            name="⚠️ Important Rules",
+            value="• **Be honest** - only apply if you genuinely have our guild tag equipped\n• **Keep the tag** - do not remove your guild tag while using the gen role\n• **Respect the system** - removing your tag after getting gen will result in a **permanent blacklist**\n• We expect members to proudly represent our guild tag as long as they hold the gen role",
+            inline=False
+        )
+        
+        welcome_embed.add_field(
+            name="ℹ️ Important Information",
+            value="• Our guild tag may change **icon/color** over time, but we will always keep the **DMA** tag name\n• Look for the **DMA** text in your guild tag - that's what we're verifying",
+            inline=False
+        )
+        
+        welcome_embed.add_field(
+            name="📸 How to Submit",
+            value="Send a screenshot of your Discord profile showing the guild tag clearly visible.",
+            inline=False
+        )
+        
+        welcome_embed.add_field(
+            name="🆘 Need Support?",
+            value="Contact our support team: <#1399534470029115443>",
+            inline=False
+        )
+        
+        welcome_embed.set_image(url="https://dottystore.e-z.tools/ru9kyhhl.gif")
+        welcome_embed.set_footer(text="Please attach your verification screenshot to your next message")
+        
+        await message.reply(embed=welcome_embed)
         return
     
-    # Check if it's an image
+    # Enhanced file type validation
     attachment = message.attachments[0]
     if not attachment.content_type or not attachment.content_type.startswith('image/'):
-        await message.reply("❌ Please send a valid image file (PNG, JPG, etc.)")
+        error_embed = discord.Embed(
+            title="❌ Invalid File Type",
+            description="Please send a valid image file for verification.",
+            color=discord.Color.red(),
+            timestamp=datetime.now()
+        )
+        error_embed.add_field(
+            name="Accepted Formats",
+            value="• PNG (.png)\n• JPEG (.jpg, .jpeg)\n• WebP (.webp)\n• GIF (.gif)",
+            inline=False
+        )
+        error_embed.add_field(
+            name="What to Send",
+            value="Take a screenshot of your Discord profile showing the guild tag clearly visible.",
+            inline=False
+        )
+        await message.reply(embed=error_embed)
+        return
+    
+    # Check file size (Discord limit is 25MB, but let's be reasonable)
+    if attachment.size > 10 * 1024 * 1024:  # 10MB limit
+        await message.reply("❌ **File too large!** Please send an image smaller than 10MB.")
         return
     
     # Check if already pending
     pending = load_pending()
     if str(user.id) in pending:
-        await message.reply("⏳ You already have a pending verification request. Please wait for admin review.")
+        pending_embed = discord.Embed(
+            title="⏳ Already Pending",
+            description="You already have a verification request waiting for admin review.",
+            color=discord.Color.orange(),
+            timestamp=datetime.now()
+        )
+        pending_embed.add_field(
+            name="Expected Review Time",
+            value="1-24 hours",
+            inline=True
+        )
+        pending_embed.add_field(
+            name="Status",
+            value="Waiting for admin approval",
+            inline=True
+        )
+        await message.reply(embed=pending_embed)
         return
     
     # Send confirmation to user
-    await message.reply("""⏳ **Verification Submitted**
-
-Your guild tag verification has been submitted for admin review.
-
-**Expected Review Time:** 1-24 hours
-
-You will receive a DM once your verification has been processed. Thank you for your patience!""")
+    confirmation_embed = discord.Embed(
+        title="✅ Verification Submitted",
+        description="Your guild tag verification has been successfully submitted!",
+        color=discord.Color.green(),
+        timestamp=datetime.now()
+    )
+    confirmation_embed.add_field(
+        name="⏰ Expected Review Time",
+        value="1-24 hours",
+        inline=True
+    )
+    confirmation_embed.add_field(
+        name="📬 Next Steps",
+        value="You will receive a DM once processed",
+        inline=True
+    )
+    confirmation_embed.add_field(
+        name="⚠️ Important Reminder",
+        value="Keep your guild tag equipped while waiting for review. Removing it may result in denial or blacklisting.",
+        inline=False
+    )
+    confirmation_embed.set_footer(text="Thank you for your patience!")
     
-    # Send to admin channel for review
+    await message.reply(embed=confirmation_embed)
+    
+    # Enhanced admin notification
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if not admin_channel:
         print(f"Warning: Could not find admin channel {ADMIN_CHANNEL_ID}")
         return
     
-    embed = discord.Embed(
-        title="🔍 New Guild Tag Verification",
-        description=f"**User:** {user.mention} ({user.name}#{user.discriminator})\n**User ID:** {user.id}",
+    # Calculate account age
+    account_age = datetime.now() - user.created_at
+    join_date = member.joined_at
+    
+    admin_embed = discord.Embed(
+        title="🔍 New Guild Tag Verification Request",
         color=discord.Color.blue(),
         timestamp=datetime.now()
     )
-    embed.set_image(url=attachment.url)
-    embed.set_footer(text="Click a button below to approve or deny this verification")
+    
+    admin_embed.add_field(
+        name="👤 User Information",
+        value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
+        inline=True
+    )
+    
+    admin_embed.add_field(
+        name="📊 Account Details",
+        value=f"**Created:** {user.created_at.strftime('%b %d, %Y')}\n**Joined Server:** {join_date.strftime('%b %d, %Y') if join_date else 'Unknown'}\n**Account Age:** {account_age.days} days",
+        inline=True
+    )
+    
+    admin_embed.add_field(
+        name="📷 Verification Image",
+        value="Screenshot attached below",
+        inline=False
+    )
+    
+    admin_embed.set_image(url=attachment.url)
+    admin_embed.set_thumbnail(url=user.display_avatar.url)
+    admin_embed.set_footer(text="Guild Tag Verification System", icon_url=bot.user.display_avatar.url)
     
     view = VerificationView(user.id, None)
-    admin_message = await admin_channel.send(embed=embed, view=view)
+    admin_message = await admin_channel.send(embed=admin_embed, view=view)
     
     # Store pending verification
     pending[str(user.id)] = {
         "timestamp": datetime.now().isoformat(),
         "admin_message_id": admin_message.id,
-        "image_url": attachment.url
+        "image_url": attachment.url,
+        "user_info": {
+            "username": f"{user.name}#{user.discriminator}",
+            "created_at": user.created_at.isoformat(),
+            "joined_at": join_date.isoformat() if join_date else None
+        }
     }
     save_pending(pending)
 
