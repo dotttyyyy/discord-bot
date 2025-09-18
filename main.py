@@ -431,48 +431,46 @@ async def handle_dm(message):
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
     if not admin_channel:
         print(f"ERROR: Could not find admin channel {ADMIN_CHANNEL_ID}")
-        # Try to send error message to user
         await message.reply("⚠️ **System Error**: Could not reach admin team. Please try again later or contact support.")
         return
     
     print(f"DEBUG: Sending verification to admin channel: {admin_channel.name}")
     
-    try:
+    # Calculate account age
+    account_age = datetime.now() - user.created_at
+    join_date = member.joined_at
+    
+    admin_embed = discord.Embed(
+        title="🔍 New Guild Tag Verification Request",
+        color=discord.Color.blue(),
+        timestamp=datetime.now()
+    )
+    
+    admin_embed.add_field(
+        name="👤 User Information",
+        value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
+        inline=True
+    )
+    
+    admin_embed.add_field(
+        name="📊 Account Details",
+        value=f"**Created:** {user.created_at.strftime('%b %d, %Y')}\n**Joined Server:** {join_date.strftime('%b %d, %Y') if join_date else 'Unknown'}\n**Account Age:** {account_age.days} days",
+        inline=True
+    )
+    
+    admin_embed.add_field(
+        name="📷 Verification Image",
+        value="Screenshot attached below",
+        inline=False
+    )
+    
+    admin_embed.set_image(url=attachment.url)
+    admin_embed.set_thumbnail(url=user.display_avatar.url)
+    admin_embed.set_footer(text="Guild Tag Verification System", icon_url=bot.user.display_avatar.url)
+    
+    view = VerificationView(user.id, None)
     
     try:
-        # Calculate account age
-        account_age = datetime.now() - user.created_at
-        join_date = member.joined_at
-        
-        admin_embed = discord.Embed(
-            title="🔍 New Guild Tag Verification Request",
-            color=discord.Color.blue(),
-            timestamp=datetime.now()
-        )
-        
-        admin_embed.add_field(
-            name="👤 User Information",
-            value=f"**User:** {user.mention}\n**Username:** {user.name}#{user.discriminator}\n**ID:** {user.id}",
-            inline=True
-        )
-        
-        admin_embed.add_field(
-            name="📊 Account Details",
-            value=f"**Created:** {user.created_at.strftime('%b %d, %Y')}\n**Joined Server:** {join_date.strftime('%b %d, %Y') if join_date else 'Unknown'}\n**Account Age:** {account_age.days} days",
-            inline=True
-        )
-        
-        admin_embed.add_field(
-            name="📷 Verification Image",
-            value="Screenshot attached below",
-            inline=False
-        )
-        
-        admin_embed.set_image(url=attachment.url)
-        admin_embed.set_thumbnail(url=user.display_avatar.url)
-        admin_embed.set_footer(text="Guild Tag Verification System", icon_url=bot.user.display_avatar.url)
-        
-        view = VerificationView(user.id, None)
         admin_message = await admin_channel.send(embed=admin_embed, view=view)
         print(f"SUCCESS: Admin message sent with ID: {admin_message.id}")
         
