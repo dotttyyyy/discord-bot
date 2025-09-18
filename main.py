@@ -427,14 +427,32 @@ async def handle_dm(message):
     
     await message.reply(embed=confirmation_embed)
     
-    # Enhanced admin notification
+    # Enhanced admin notification with detailed debugging
+    print(f"DEBUG: Looking for admin channel ID: {ADMIN_CHANNEL_ID}")
     admin_channel = bot.get_channel(ADMIN_CHANNEL_ID)
+    
     if not admin_channel:
         print(f"ERROR: Could not find admin channel {ADMIN_CHANNEL_ID}")
+        print(f"DEBUG: Available channels in guild:")
+        guild = bot.get_guild(GUILD_ID)
+        for channel in guild.channels:
+            print(f"  - {channel.name}: {channel.id} (type: {channel.type})")
         await message.reply("⚠️ **System Error**: Could not reach admin team. Please try again later or contact support.")
         return
     
-    print(f"DEBUG: Sending verification to admin channel: {admin_channel.name}")
+    print(f"DEBUG: Found admin channel: {admin_channel.name} (ID: {admin_channel.id})")
+    
+    # Check bot permissions in the admin channel
+    permissions = admin_channel.permissions_for(guild.me)
+    print(f"DEBUG: Bot permissions in admin channel:")
+    print(f"  - Send Messages: {permissions.send_messages}")
+    print(f"  - Embed Links: {permissions.embed_links}")
+    print(f"  - View Channel: {permissions.view_channel}")
+    
+    if not permissions.send_messages:
+        print(f"ERROR: Bot doesn't have permission to send messages in {admin_channel.name}")
+        await message.reply("⚠️ **Permission Error**: Bot cannot send messages to admin channel. Please check permissions.")
+        return
     
     # Calculate account age
     account_age = datetime.now() - user.created_at
