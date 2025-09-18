@@ -1,0 +1,15 @@
+{
+  "name": "ultimate-discord-bot",
+  "version": "1.0.0",
+  "description": "All-in-one Discord bot",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.14.1"
+  },
+  "engines": {
+    "node": "18.x"
+  }
+}
