@@ -2160,6 +2160,3 @@ createCommand('help', 'Show all available commands', 'utility', async (interacti
         .setTitle('📚 Bot Commands')
         .setDescription('Here are all available commands:')
         .setTimestamp();
-    
-    for (const [category, emoji] of Object.entries(categories)) {
-        const categoryCommands =
