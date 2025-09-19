@@ -224,7 +224,7 @@ async def on_ready():
     print(f'Bot is in {len(bot.guilds)} guilds')
 
     # Set bot status (minor change)
-    activity = discord.Game(name="It's A Long Way To Tipperary")
+    activity = discord.Game(name="Divine intellect")
     await bot.change_presence(status=discord.Status.online, activity=activity)
 
 # The rest of your events and functions remain unchanged
