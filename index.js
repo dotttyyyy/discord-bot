@@ -1,5 +1,6 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const translate = require('@iamtraction/google-translate');
+const https = require('https');
+const querystring = require('querystring');
 
 const client = new Client({
     intents: [
@@ -11,6 +12,50 @@ const client = new Client({
 
 // Store original messages for translation
 const messageStore = new Map();
+
+// Simple translation function using basic HTTPS request
+function translateText(text, targetLang) {
+    return new Promise((resolve, reject) => {
+        const params = querystring.stringify({
+            q: text,
+            langpair: `auto|${targetLang}`
+        });
+        
+        const options = {
+            hostname: 'api.mymemory.translated.net',
+            port: 443,
+            path: `/get?${params}`,
+            method: 'GET'
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            
+            res.on('data', (chunk) => {
+                data += chunk;
+            });
+            
+            res.on('end', () => {
+                try {
+                    const response = JSON.parse(data);
+                    if (response.responseStatus === 200) {
+                        resolve({ text: response.responseData.translatedText });
+                    } else {
+                        reject(new Error('Translation failed'));
+                    }
+                } catch (error) {
+                    reject(error);
+                }
+            });
+        });
+
+        req.on('error', (error) => {
+            reject(error);
+        });
+
+        req.end();
+    });
+}
 
 client.on('ready', () => {
     console.log(`🤖 ${client.user.tag} is online and ready to translate!`);
@@ -90,7 +135,7 @@ client.on('interactionCreate', async (interaction) => {
 
     try {
         // Translate the message
-        const result = await translate(originalData.content, { to: language });
+        const result = await translateText(originalData.content, language);
         
         // Language names for display
         const languageNames = {
@@ -112,7 +157,7 @@ client.on('interactionCreate', async (interaction) => {
             .setTitle(`${flags[language]} Translation to ${languageNames[language]}`)
             .setDescription(`**Original:** ${originalData.content}\n\n**Translation:** ${result.text}`)
             .setFooter({ 
-                text: `Translated by ${originalData.author} • Powered by Google Translate`,
+                text: `Translated by ${originalData.author} • Powered by MyMemory`,
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
