@@ -6,19 +6,10 @@
   "scripts": {
     "start": "node index.js"
   },
-  "keywords": [
-    "discord",
-    "bot",
-    "translate",
-    "translation"
-  ],
-  "author": "Your Name",
-  "license": "MIT",
   "dependencies": {
-    "discord.js": "^13.17.1",
-    "node-fetch": "^2.6.7"
+    "discord.js": "14.14.1"
   },
   "engines": {
-    "node": ">=16.0.0"
+    "node": "18"
   }
 }
