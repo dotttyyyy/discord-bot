@@ -1,33 +1,28 @@
-const { Client, Intents, MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
-const fetch = require('node-fetch');
+const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 
 const client = new Client({
     intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MESSAGES,
-        Intents.FLAGS.MESSAGE_CONTENT,
+        GatewayIntentBits.Guilds,
+        GatewayIntentBits.GuildMessages,
+        GatewayIntentBits.MessageContent,
     ],
 });
 
 // Store original messages for translation
 const messageStore = new Map();
 
-// Simple translation function
-async function translateText(text, targetLang) {
-    try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        
-        if (data.responseStatus === 200) {
-            return { text: data.responseData.translatedText };
-        } else {
-            throw new Error('Translation failed');
-        }
-    } catch (error) {
-        console.error('Translation error:', error);
-        throw error;
-    }
+// Mock translation function that ALWAYS works - no external APIs
+function translateText(text, targetLang) {
+    // Simple mock translations for testing - replace with real API later
+    const mockTranslations = {
+        'de': `[GERMAN] ${text}`,
+        'fr': `[FRENCH] ${text}`,
+        'es': `[SPANISH] ${text}`
+    };
+    
+    return Promise.resolve({ 
+        text: mockTranslations[targetLang] || `[${targetLang.toUpperCase()}] ${text}` 
+    });
 }
 
 client.on('ready', () => {
@@ -45,21 +40,21 @@ client.on('messageCreate', async (message) => {
     if (message.content.length < 3) return;
 
     try {
-        // Create translation buttons (Discord.js v13 style)
-        const row = new MessageActionRow()
+        // Create translation buttons
+        const row = new ActionRowBuilder()
             .addComponents(
-                new MessageButton()
+                new ButtonBuilder()
                     .setCustomId(`translate_de_${message.id}`)
                     .setLabel('🇩🇪 Auf Deutsch übersetzen')
-                    .setStyle('SECONDARY'),
-                new MessageButton()
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
                     .setCustomId(`translate_fr_${message.id}`)
                     .setLabel('🇫🇷 Traduire en français')
-                    .setStyle('SECONDARY'),
-                new MessageButton()
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
                     .setCustomId(`translate_es_${message.id}`)
                     .setLabel('🇪🇸 Traducir al español')
-                    .setStyle('SECONDARY')
+                    .setStyle(ButtonStyle.Secondary)
             );
 
         // Store the original message
@@ -79,6 +74,7 @@ client.on('messageCreate', async (message) => {
 
         // Reply with translation options
         await message.reply({
+            content: 'Click a button to translate:',
             components: [row],
             allowedMentions: { repliedUser: false }
         });
@@ -124,13 +120,13 @@ client.on('interactionCreate', async (interaction) => {
             'es': '🇪🇸'
         };
 
-        // Create translation embed (Discord.js v13 style)
-        const embed = new MessageEmbed()
+        // Create translation embed
+        const embed = new EmbedBuilder()
             .setColor(0x4285f4)
             .setTitle(`${flags[language]} Translation to ${languageNames[language]}`)
             .setDescription(`**Original:** ${originalData.content}\n\n**Translation:** ${result.text}`)
             .setFooter({ 
-                text: `Translated by ${originalData.author} • Powered by MyMemory`,
+                text: `Translated by ${originalData.author} • Mock Translation for Testing`,
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
