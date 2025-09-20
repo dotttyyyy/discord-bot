@@ -4,8 +4,7 @@
   "description": "A Discord bot that automatically adds translation buttons to messages",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node index.js"
   },
   "keywords": [
     "discord",
@@ -16,11 +15,8 @@
   "author": "Your Name",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.14.1",
-    "@iamtraction/google-translate": "^1.1.2"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
+    "discord.js": "^13.17.1",
+    "node-fetch": "^2.6.7"
   },
   "engines": {
     "node": ">=16.0.0"
