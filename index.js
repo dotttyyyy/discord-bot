@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const translate = require('google-translate-api-x');
+const translate = require('@iamtraction/google-translate');
 
 const client = new Client({
     intents: [
