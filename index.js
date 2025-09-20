@@ -1,60 +1,33 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
-const https = require('https');
-const querystring = require('querystring');
+const { Client, Intents, MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
+const fetch = require('node-fetch');
 
 const client = new Client({
     intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
+        Intents.FLAGS.GUILDS,
+        Intents.FLAGS.GUILD_MESSAGES,
+        Intents.FLAGS.MESSAGE_CONTENT,
     ],
 });
 
 // Store original messages for translation
 const messageStore = new Map();
 
-// Simple translation function using basic HTTPS request
-function translateText(text, targetLang) {
-    return new Promise((resolve, reject) => {
-        const params = querystring.stringify({
-            q: text,
-            langpair: `auto|${targetLang}`
-        });
+// Simple translation function
+async function translateText(text, targetLang) {
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`;
+        const response = await fetch(url);
+        const data = await response.json();
         
-        const options = {
-            hostname: 'api.mymemory.translated.net',
-            port: 443,
-            path: `/get?${params}`,
-            method: 'GET'
-        };
-
-        const req = https.request(options, (res) => {
-            let data = '';
-            
-            res.on('data', (chunk) => {
-                data += chunk;
-            });
-            
-            res.on('end', () => {
-                try {
-                    const response = JSON.parse(data);
-                    if (response.responseStatus === 200) {
-                        resolve({ text: response.responseData.translatedText });
-                    } else {
-                        reject(new Error('Translation failed'));
-                    }
-                } catch (error) {
-                    reject(error);
-                }
-            });
-        });
-
-        req.on('error', (error) => {
-            reject(error);
-        });
-
-        req.end();
-    });
+        if (data.responseStatus === 200) {
+            return { text: data.responseData.translatedText };
+        } else {
+            throw new Error('Translation failed');
+        }
+    } catch (error) {
+        console.error('Translation error:', error);
+        throw error;
+    }
 }
 
 client.on('ready', () => {
@@ -65,28 +38,28 @@ client.on('messageCreate', async (message) => {
     // Ignore bot messages and empty messages
     if (message.author.bot || !message.content.trim()) return;
     
-    // Only work in the specified channel - CHANGE THIS TO YOUR CHANNEL ID
+    // Only work in the specified channel
     if (message.channel.id !== '1414421793393082461') return;
     
     // Skip if message is too short (less than 3 characters)
     if (message.content.length < 3) return;
 
     try {
-        // Create translation buttons
-        const row = new ActionRowBuilder()
+        // Create translation buttons (Discord.js v13 style)
+        const row = new MessageActionRow()
             .addComponents(
-                new ButtonBuilder()
+                new MessageButton()
                     .setCustomId(`translate_de_${message.id}`)
                     .setLabel('🇩🇪 Auf Deutsch übersetzen')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
+                    .setStyle('SECONDARY'),
+                new MessageButton()
                     .setCustomId(`translate_fr_${message.id}`)
                     .setLabel('🇫🇷 Traduire en français')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
+                    .setStyle('SECONDARY'),
+                new MessageButton()
                     .setCustomId(`translate_es_${message.id}`)
                     .setLabel('🇪🇸 Traducir al español')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle('SECONDARY')
             );
 
         // Store the original message
@@ -151,8 +124,8 @@ client.on('interactionCreate', async (interaction) => {
             'es': '🇪🇸'
         };
 
-        // Create translation embed
-        const embed = new EmbedBuilder()
+        // Create translation embed (Discord.js v13 style)
+        const embed = new MessageEmbed()
             .setColor(0x4285f4)
             .setTitle(`${flags[language]} Translation to ${languageNames[language]}`)
             .setDescription(`**Original:** ${originalData.content}\n\n**Translation:** ${result.text}`)
