@@ -1,6 +1,6 @@
 {
   "name": "discord-translate-bot",
-  "version": "1.0.0",
+  "version": "1.0.0", 
   "description": "A Discord bot that automatically adds translation buttons to messages",
   "main": "index.js",
   "scripts": {
@@ -10,6 +10,6 @@
     "discord.js": "14.14.1"
   },
   "engines": {
-    "node": "18"
+    "node": ">=16.9.0"
   }
 }
