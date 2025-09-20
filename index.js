@@ -1,27 +1,22 @@
-const { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
+const { Client, Intents, MessageActionRow, MessageButton, MessageEmbed } = require('discord.js');
 
 const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-    ],
+    intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES]
 });
 
 // Store original messages for translation
 const messageStore = new Map();
 
-// Mock translation function that ALWAYS works - no external APIs
+// Mock translation function that ALWAYS works
 function translateText(text, targetLang) {
-    // Simple mock translations for testing - replace with real API later
     const mockTranslations = {
-        'de': `[GERMAN] ${text}`,
-        'fr': `[FRENCH] ${text}`,
-        'es': `[SPANISH] ${text}`
+        'de': `🇩🇪 [GERMAN]: ${text}`,
+        'fr': `🇫🇷 [FRENCH]: ${text}`,
+        'es': `🇪🇸 [SPANISH]: ${text}`
     };
     
     return Promise.resolve({ 
-        text: mockTranslations[targetLang] || `[${targetLang.toUpperCase()}] ${text}` 
+        text: mockTranslations[targetLang] || `[${targetLang.toUpperCase()}]: ${text}` 
     });
 }
 
@@ -40,21 +35,21 @@ client.on('messageCreate', async (message) => {
     if (message.content.length < 3) return;
 
     try {
-        // Create translation buttons
-        const row = new ActionRowBuilder()
+        // Create translation buttons (Discord.js v13 style)
+        const row = new MessageActionRow()
             .addComponents(
-                new ButtonBuilder()
+                new MessageButton()
                     .setCustomId(`translate_de_${message.id}`)
                     .setLabel('🇩🇪 Auf Deutsch übersetzen')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
+                    .setStyle('SECONDARY'),
+                new MessageButton()
                     .setCustomId(`translate_fr_${message.id}`)
                     .setLabel('🇫🇷 Traduire en français')
-                    .setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder()
+                    .setStyle('SECONDARY'),
+                new MessageButton()
                     .setCustomId(`translate_es_${message.id}`)
                     .setLabel('🇪🇸 Traducir al español')
-                    .setStyle(ButtonStyle.Secondary)
+                    .setStyle('SECONDARY')
             );
 
         // Store the original message
@@ -75,8 +70,7 @@ client.on('messageCreate', async (message) => {
         // Reply with translation options
         await message.reply({
             content: 'Click a button to translate:',
-            components: [row],
-            allowedMentions: { repliedUser: false }
+            components: [row]
         });
 
     } catch (error) {
@@ -120,13 +114,13 @@ client.on('interactionCreate', async (interaction) => {
             'es': '🇪🇸'
         };
 
-        // Create translation embed
-        const embed = new EmbedBuilder()
+        // Create translation embed (Discord.js v13 style)
+        const embed = new MessageEmbed()
             .setColor(0x4285f4)
             .setTitle(`${flags[language]} Translation to ${languageNames[language]}`)
             .setDescription(`**Original:** ${originalData.content}\n\n**Translation:** ${result.text}`)
             .setFooter({ 
-                text: `Translated by ${originalData.author} • Mock Translation for Testing`,
+                text: `Translated by ${originalData.author} • Test Mode`,
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
@@ -152,5 +146,3 @@ process.on('unhandledRejection', (error) => {
 
 // Start the bot
 client.login(process.env.DISCORD_TOKEN);
-
-
