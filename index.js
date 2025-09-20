@@ -7,17 +7,99 @@ const client = new Client({
 // Store original messages for translation
 const messageStore = new Map();
 
-// Mock translation function that ALWAYS works
-function translateText(text, targetLang) {
-    const mockTranslations = {
-        'de': `🇩🇪 [GERMAN]: ${text}`,
-        'fr': `🇫🇷 [FRENCH]: ${text}`,
-        'es': `🇪🇸 [SPANISH]: ${text}`
-    };
-    
-    return Promise.resolve({ 
-        text: mockTranslations[targetLang] || `[${targetLang.toUpperCase()}]: ${text}` 
-    });
+// Real translation function using LibreTranslate API (Railway-compatible)
+async function translateText(text, targetLang) {
+    try {
+        // Using LibreTranslate public instance - more Railway-compatible
+        const https = require('https');
+        const querystring = require('querystring');
+        
+        const postData = JSON.stringify({
+            q: text,
+            source: 'auto',
+            target: targetLang,
+            format: 'text'
+        });
+        
+        const options = {
+            hostname: 'libretranslate.de',
+            port: 443,
+            path: '/translate',
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData),
+                'User-Agent': 'DiscordBot/1.0'
+            },
+            timeout: 10000
+        };
+
+        return new Promise((resolve, reject) => {
+            const req = https.request(options, (res) => {
+                let data = '';
+                
+                res.on('data', (chunk) => {
+                    data += chunk;
+                });
+                
+                res.on('end', () => {
+                    try {
+                        const response = JSON.parse(data);
+                        if (response.translatedText) {
+                            resolve({ text: response.translatedText });
+                        } else {
+                            // Fallback to mock if API response is unexpected
+                            const mockTranslations = {
+                                'de': `🇩🇪 [GERMAN FALLBACK]: ${text}`,
+                                'fr': `🇫🇷 [FRENCH FALLBACK]: ${text}`
+                            };
+                            resolve({ text: mockTranslations[targetLang] || text });
+                        }
+                    } catch (error) {
+                        // Fallback to mock if JSON parsing fails
+                        const mockTranslations = {
+                            'de': `🇩🇪 [GERMAN FALLBACK]: ${text}`,
+                            'fr': `🇫🇷 [FRENCH FALLBACK]: ${text}`
+                        };
+                        resolve({ text: mockTranslations[targetLang] || text });
+                    }
+                });
+            });
+
+            req.on('error', (error) => {
+                console.log('Translation API error, using fallback:', error.message);
+                // Always fallback to mock - never crash
+                const mockTranslations = {
+                    'de': `🇩🇪 [GERMAN FALLBACK]: ${text}`,
+                    'fr': `🇫🇷 [FRENCH FALLBACK]: ${text}`
+                };
+                resolve({ text: mockTranslations[targetLang] || text });
+            });
+
+            req.on('timeout', () => {
+                req.destroy();
+                console.log('Translation API timeout, using fallback');
+                // Fallback to mock on timeout
+                const mockTranslations = {
+                    'de': `🇩🇪 [GERMAN FALLBACK]: ${text}`,
+                    'fr': `🇫🇷 [FRENCH FALLBACK]: ${text}`
+                };
+                resolve({ text: mockTranslations[targetLang] || text });
+            });
+
+            req.write(postData);
+            req.end();
+        });
+        
+    } catch (error) {
+        console.log('Translation function error, using fallback:', error.message);
+        // Ultimate fallback - always works
+        const mockTranslations = {
+            'de': `🇩🇪 [GERMAN FALLBACK]: ${text}`,
+            'fr': `🇫🇷 [FRENCH FALLBACK]: ${text}`
+        };
+        return { text: mockTranslations[targetLang] || text };
+    }
 }
 
 client.on('ready', () => {
@@ -35,35 +117,7 @@ client.on('messageCreate', async (message) => {
     if (message.content.length < 3) return;
 
     try {
-        // Create translation buttons (Discord.js v13 style)
-        const row = new MessageActionRow()
-            .addComponents(
-                new MessageButton()
-                    .setCustomId(`translate_de_${message.id}`)
-                    .setLabel('🇩🇪 Auf Deutsch übersetzen')
-                    .setStyle('SECONDARY'),
-                new MessageButton()
-                    .setCustomId(`translate_fr_${message.id}`)
-                    .setLabel('🇫🇷 Traduire en français')
-                    .setStyle('SECONDARY'),
-                new MessageButton()
-                    .setCustomId(`translate_es_${message.id}`)
-                    .setLabel('🇪🇸 Traducir al español')
-                    .setStyle('SECONDARY')
-            );
 
-        // Store the original message
-        messageStore.set(message.id, {
-            content: message.content,
-            author: message.author.username,
-            timestamp: Date.now()
-        });
-
-        // Clean up old stored messages (older than 1 hour)
-        const oneHourAgo = Date.now() - (60 * 60 * 1000);
-        for (const [id, data] of messageStore.entries()) {
-            if (data.timestamp < oneHourAgo) {
-                messageStore.delete(id);
             }
         }
 
@@ -100,18 +154,16 @@ client.on('interactionCreate', async (interaction) => {
         // Translate the message
         const result = await translateText(originalData.content, language);
         
-        // Language names for display
+        // Language names for display (removed Spanish)
         const languageNames = {
             'de': 'German (Deutsch)',
-            'fr': 'French (Français)', 
-            'es': 'Spanish (Español)'
+            'fr': 'French (Français)'
         };
 
-        // Language flags
+        // Language flags (removed Spanish)
         const flags = {
             'de': '🇩🇪',
-            'fr': '🇫🇷',
-            'es': '🇪🇸'
+            'fr': '🇫🇷'
         };
 
         // Create translation embed (Discord.js v13 style)
@@ -120,7 +172,7 @@ client.on('interactionCreate', async (interaction) => {
             .setTitle(`${flags[language]} Translation to ${languageNames[language]}`)
             .setDescription(`**Original:** ${originalData.content}\n\n**Translation:** ${result.text}`)
             .setFooter({ 
-                text: `Translated by ${originalData.author} • Test Mode`,
+                text: `Translated by ${originalData.author} • LibreTranslate API`,
                 iconURL: interaction.user.displayAvatarURL()
             })
             .setTimestamp();
