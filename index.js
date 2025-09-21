@@ -119,7 +119,7 @@ function createInvoiceEmbed(invoice, showSensitive = false) {
     if (invoice.price_usd) {
         embed.addFields({
             name: 'Amount',
-            value: `$${invoice.price_usd}`,
+            value: `${invoice.price_usd}`,
             inline: true
         });
     }
@@ -130,7 +130,17 @@ function createInvoiceEmbed(invoice, showSensitive = false) {
         embed.addFields({
             name: 'Purchase Date',
             value: `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`,
-            inline: false
+            inline: true
+        });
+    }
+
+    // Completion date
+    if (invoice.completed_at && invoice.status === 'completed') {
+        const date = new Date(invoice.completed_at);
+        embed.addFields({
+            name: 'Completed Date',
+            value: `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`,
+            inline: true
         });
     }
 
@@ -143,45 +153,84 @@ function createInvoiceEmbed(invoice, showSensitive = false) {
         });
     }
 
-    // Products and delivery
+    // Products and delivery - This was missing proper display
     if (invoice.invoice_items && invoice.invoice_items.length > 0) {
         const products = invoice.invoice_items.map(item => {
-            const name = item.product?.name || item.variant?.name || 'Unknown Product';
+            const name = item.product?.name || item.variant?.name || item.variant_name || item.product_name || 'Unknown Product';
             const qty = item.quantity || 1;
-            let productLine = `${name} (x${qty})`;
+            let productLine = `**${name}** (Quantity: ${qty})`;
             
             // Show delivery info
             if (item.deliverables && item.deliverables.length > 0) {
-                productLine += ` - ${item.deliverables.length} items delivered`;
-                if (showSensitive && item.deliverables[0]) {
-                    const preview = item.deliverables[0].toString().substring(0, 50);
-                    productLine += `\n  Preview: \`${preview}...\``;
+                productLine += `\n📦 **Delivered:** ${item.deliverables.length} items`;
+                if (showSensitive) {
+                    // Show actual delivered content for management
+                    const delivered = item.deliverables.slice(0, 3).map(d => `\`${d}\``).join(', ');
+                    productLine += `\n🔑 **Content:** ${delivered}`;
+                    if (item.deliverables.length > 3) {
+                        productLine += ` +${item.deliverables.length - 3} more`;
+                    }
+                } else {
+                    productLine += `\n🔑 **Keys/Items delivered to customer**`;
                 }
+            } else {
+                productLine += `\n⚠️ **No delivery recorded**`;
             }
+            
             return productLine;
-        }).join('\n');
+        }).join('\n\n');
 
         embed.addFields({
-            name: 'Products & Delivery',
+            name: '🛍️ Products & Delivery',
             value: products.length > 1000 ? products.substring(0, 1000) + '...' : products,
             inline: false
         });
     }
 
-    // Additional info for management
-    if (showSensitive) {
-        const extras = [];
-        if (invoice.ip) extras.push(`IP: ${invoice.ip}`);
-        if (invoice.discord_username) extras.push(`Discord: ${invoice.discord_username}`);
-        if (invoice.coupon_code) extras.push(`Coupon: ${invoice.coupon_code}`);
+    // Discord info
+    if (invoice.discord_username || invoice.discord_id) {
+        const discordInfo = [];
+        if (invoice.discord_username) discordInfo.push(`Username: ${invoice.discord_username}`);
+        if (invoice.discord_id) discordInfo.push(`ID: ${invoice.discord_id}`);
         
-        if (extras.length > 0) {
+        embed.addFields({
+            name: '🎮 Discord',
+            value: discordInfo.join('\n'),
+            inline: true
+        });
+    }
+
+    // Coupon info
+    if (invoice.coupon_code) {
+        embed.addFields({
+            name: '🎫 Coupon Used',
+            value: invoice.coupon_code,
+            inline: true
+        });
+    }
+
+    // Additional sensitive info for management only
+    if (showSensitive) {
+        const additionalInfo = [];
+        if (invoice.ip) additionalInfo.push(`🌐 IP: ${invoice.ip}`);
+        if (invoice.user_agent) additionalInfo.push(`🖥️ User Agent: ${invoice.user_agent.substring(0, 50)}...`);
+        if (invoice.stripe_pi_id) additionalInfo.push(`💳 Stripe ID: ${invoice.stripe_pi_id}`);
+        if (invoice.paypal_order_id) additionalInfo.push(`💰 PayPal ID: ${invoice.paypal_order_id}`);
+        
+        if (additionalInfo.length > 0) {
             embed.addFields({
-                name: 'Additional Info',
-                value: extras.join('\n'),
+                name: '🔒 Additional Info (Management)',
+                value: additionalInfo.join('\n'),
                 inline: false
             });
         }
+    } else if (invoice.ip) {
+        // Show redacted info for regular users
+        embed.addFields({
+            name: '🔒 Additional Info',
+            value: `🌐 IP: ${redactSensitive(invoice.ip)}`,
+            inline: true
+        });
     }
 
     return embed;
