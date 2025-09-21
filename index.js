@@ -1,4 +1,4 @@
-// index.js
+// index.js - DEBUG VERSION
 const { Client, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder, REST, Routes } = require('discord.js');
 const axios = require('axios');
 
@@ -9,22 +9,37 @@ const client = new Client({
 const SELLAUTH_API_KEY = '5244247|Fzn2eH0AmFVWaI5qHWr7IZWU6LSUvxtTpL4ztttE07d9729a';
 const SHOP_ID = '5244247';
 
-// Redact sensitive info
-function redact(text) {
-    if (!text) return text;
-    return text.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]')
-              .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '[IP REDACTED]');
-}
-
-// Get invoice data
+// Test multiple API endpoints to find the right one
 async function getInvoice(invoiceId) {
-    const response = await axios.get(`https://api.sellauth.com/shops/${SHOP_ID}/invoices/${invoiceId}`, {
-        headers: { 'Authorization': `Bearer ${SELLAUTH_API_KEY}` }
-    });
-    return response.data;
+    const endpoints = [
+        `https://api.sellauth.com/shops/${SHOP_ID}/invoices/${invoiceId}`,
+        `https://sellauth.com/api/v1/shops/${SHOP_ID}/invoices/${invoiceId}`,
+        `https://api.sellauth.com/v1/shops/${SHOP_ID}/invoices/${invoiceId}`,
+        `https://sellauth.com/api/invoices/${invoiceId}`,
+        `https://api.sellauth.com/invoices/${invoiceId}`
+    ];
+    
+    console.log(`Testing invoice ID: ${invoiceId}`);
+    
+    for (let i = 0; i < endpoints.length; i++) {
+        try {
+            console.log(`Testing endpoint ${i + 1}: ${endpoints[i]}`);
+            const response = await axios.get(endpoints[i], {
+                headers: { 
+                    'Authorization': `Bearer ${SELLAUTH_API_KEY}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+            console.log('SUCCESS! Response:', JSON.stringify(response.data, null, 2));
+            return response.data;
+        } catch (error) {
+            console.log(`Endpoint ${i + 1} failed:`, error.response?.status, error.response?.data || error.message);
+        }
+    }
+    
+    throw new Error('All endpoints failed');
 }
 
-// Register commands
 async function registerCommands() {
     const commands = [
         new SlashCommandBuilder()
@@ -32,7 +47,10 @@ async function registerCommands() {
             .setDescription('Get invoice info')
             .addStringOption(option => 
                 option.setName('id').setDescription('Invoice ID').setRequired(true)
-            )
+            ),
+        new SlashCommandBuilder()
+            .setName('test')
+            .setDescription('Test API connection')
     ];
 
     const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -45,40 +63,37 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isChatInputCommand() || interaction.commandName !== 'invoice') return;
+    if (!interaction.isChatInputCommand()) return;
 
-    const invoiceId = interaction.options.getString('id');
-    
-    try {
-        await interaction.deferReply();
-        const data = await getInvoice(invoiceId);
+    if (interaction.commandName === 'test') {
+        await interaction.reply('Bot is working! API Key: ' + SELLAUTH_API_KEY.substring(0, 10) + '...');
+        return;
+    }
+
+    if (interaction.commandName === 'invoice') {
+        const invoiceId = interaction.options.getString('id');
         
-        const embed = new EmbedBuilder()
-            .setColor(0x0099FF)
-            .setTitle(`📄 Invoice #${data.id}`)
-            .addFields(
-                { name: '📧 Email', value: redact(data.email || 'N/A'), inline: true },
-                { name: '⏰ Time', value: new Date(data.created_at).toLocaleString(), inline: true },
-                { name: '💰 Amount', value: `$${data.price_usd || 0}`, inline: true },
-                { name: '📊 Status', value: data.status || 'Unknown', inline: true }
-            );
+        try {
+            await interaction.deferReply();
+            console.log(`User requested invoice: ${invoiceId}`);
+            
+            const data = await getInvoice(invoiceId);
+            
+            const embed = new EmbedBuilder()
+                .setColor(0x00FF00)
+                .setTitle(`✅ Found Invoice #${data.id || invoiceId}`)
+                .setDescription('```json\n' + JSON.stringify(data, null, 2).substring(0, 1000) + '\n```');
 
-        if (data.invoice_items?.length > 0) {
-            const products = data.invoice_items.map(item => 
-                `• ${item.product?.name || 'Product'} (${item.quantity || 1}x)`
-            ).join('\n');
-            embed.addFields({ name: '🔑 Products', value: products, inline: false });
+            await interaction.editReply({ embeds: [embed] });
+            
+        } catch (error) {
+            console.error('Final error:', error.message);
+            const errorEmbed = new EmbedBuilder()
+                .setColor(0xFF0000)
+                .setTitle('❌ Debug Info')
+                .setDescription(`All API endpoints failed for invoice: ${invoiceId}\nCheck Railway logs for details.`);
+            await interaction.editReply({ embeds: [errorEmbed] });
         }
-
-        await interaction.editReply({ embeds: [embed] });
-        
-    } catch (error) {
-        console.error(error);
-        const errorEmbed = new EmbedBuilder()
-            .setColor(0xFF0000)
-            .setTitle('❌ Error')
-            .setDescription(error.response?.status === 404 ? 'Invoice not found' : 'API error');
-        await interaction.editReply({ embeds: [errorEmbed] });
     }
 });
 
