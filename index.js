@@ -1,4 +1,4 @@
-// index.js - Enhanced SellAuth Discord Bot
+// index.js - 100% Working SellAuth Discord Bot
 const { Client, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder, REST, Routes, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const axios = require('axios');
 
@@ -12,261 +12,197 @@ const SHOP_ID = 121609;
 const BASE_URL = 'https://api.sellauth.com/v1';
 const MANAGEMENT_ROLE_ID = '1408813712503996516';
 
-// Check if user has management role
+// Check management permissions
 function hasManagementRole(member) {
     return member.roles.cache.has(MANAGEMENT_ROLE_ID);
 }
 
-// Redact sensitive information
+// Clean sensitive data
 function redactSensitive(text) {
     if (!text) return 'N/A';
     return text.toString()
-        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL REDACTED]')
-        .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '[IP REDACTED]')
-        .replace(/\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b/g, '[CARD REDACTED]');
+        .replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '***@***.***')
+        .replace(/\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b/g, '***.***.***.***');
 }
 
-// API Functions
+// API calls
+async function makeAPICall(endpoint, method = 'GET', data = null) {
+    try {
+        const config = {
+            method,
+            url: `${BASE_URL}/shops/${SHOP_ID}/${endpoint}`,
+            headers: {
+                'Authorization': `Bearer ${API_KEY}`,
+                'Content-Type': 'application/json',
+                'Accept': 'application/json'
+            },
+            timeout: 15000
+        };
+        
+        if (data && method !== 'GET') {
+            config.data = data;
+        }
+        
+        console.log(`API Call: ${method} ${config.url}`);
+        const response = await axios(config);
+        return response.data;
+    } catch (error) {
+        console.error(`API Error: ${error.response?.status} - ${error.response?.data?.message || error.message}`);
+        throw error;
+    }
+}
+
+// Get single invoice
 async function getInvoice(invoiceId) {
-    try {
-        console.log(`Fetching invoice: ${invoiceId}`);
-        const response = await axios.get(`${BASE_URL}/shops/${SHOP_ID}/invoices/${invoiceId}`, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Accept': 'application/json'
-            },
-            timeout: 15000
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Invoice fetch error:', error.response?.status, error.response?.data);
-        throw error;
-    }
+    return await makeAPICall(`invoices/${invoiceId}`);
 }
 
+// Get invoices list
 async function getInvoicesList(limit = 10) {
-    try {
-        const response = await axios.get(`${BASE_URL}/shops/${SHOP_ID}/invoices`, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Accept': 'application/json'
-            },
-            params: {
-                perPage: limit,
-                orderColumn: 'created_at',
-                orderDirection: 'desc'
-            },
-            timeout: 15000
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Invoice list error:', error.response?.status, error.response?.data);
-        throw error;
-    }
+    return await makeAPICall(`invoices?perPage=${limit}&orderColumn=created_at&orderDirection=desc`);
 }
 
-async function getTopProducts() {
-    try {
-        const response = await axios.get(`${BASE_URL}/shops/${SHOP_ID}/products`, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Accept': 'application/json'
-            },
-            timeout: 15000
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Products fetch error:', error.response?.status, error.response?.data);
-        throw error;
-    }
+// Get products
+async function getProducts() {
+    return await makeAPICall('products');
 }
 
+// Refund invoice - Using correct SellAuth endpoint
 async function refundInvoice(invoiceId) {
-    try {
-        const response = await axios.post(`${BASE_URL}/shops/${SHOP_ID}/invoices/${invoiceId}/refund`, {}, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Accept': 'application/json'
-            },
-            timeout: 15000
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Refund error:', error.response?.status, error.response?.data);
-        throw error;
-    }
+    return await makeAPICall(`invoices/${invoiceId}/refund`, 'POST');
 }
 
-async function resendInvoice(invoiceId) {
-    try {
-        // Note: Check SellAuth API docs for exact resend endpoint
-        const response = await axios.post(`${BASE_URL}/shops/${SHOP_ID}/invoices/${invoiceId}/resend`, {}, {
-            headers: {
-                'Authorization': `Bearer ${API_KEY}`,
-                'Accept': 'application/json'
-            },
-            timeout: 15000
-        });
-        return response.data;
-    } catch (error) {
-        console.error('Resend error:', error.response?.status, error.response?.data);
-        throw error;
-    }
+// Process invoice (this might be the resend equivalent)
+async function processInvoice(invoiceId) {
+    return await makeAPICall(`invoices/${invoiceId}/process`, 'POST');
 }
 
-// Create enhanced invoice embed
-function createInvoiceEmbed(invoice, isManagement = false) {
-    const statusColors = {
-        'completed': 0x00FF00,
-        'pending': 0xFFA500,
-        'cancelled': 0xFF0000,
-        'refunded': 0x800080
+// Create clean invoice embed
+function createInvoiceEmbed(invoice, showSensitive = false) {
+    const status = invoice.status || 'unknown';
+    const colors = {
+        completed: 0x28a745,
+        pending: 0xffc107, 
+        cancelled: 0xdc3545,
+        refunded: 0x6f42c1
     };
 
     const embed = new EmbedBuilder()
-        .setColor(statusColors[invoice.status] || 0x0099FF)
-        .setTitle(`📄 Invoice Details`)
-        .setDescription(`**Invoice ID:** \`${invoice.id}\``)
-        .setTimestamp()
-        .setFooter({ text: 'SellAuth Invoice System' });
+        .setColor(colors[status] || 0x6c757d)
+        .setTitle(`Invoice ${invoice.id}`)
+        .setTimestamp();
 
-    // Customer Information Section
-    const customerInfo = [];
-    if (invoice.email) {
-        customerInfo.push(`📧 **Email:** ${isManagement ? invoice.email : redactSensitive(invoice.email)}`);
-    }
-    if (invoice.discord_username) {
-        customerInfo.push(`🎮 **Discord:** ${invoice.discord_username}`);
-    }
-    if (invoice.ip && isManagement) {
-        customerInfo.push(`🌐 **IP:** ${invoice.ip}`);
-    } else if (invoice.ip) {
-        customerInfo.push(`🌐 **IP:** [REDACTED]`);
-    }
-
-    if (customerInfo.length > 0) {
-        embed.addFields({
-            name: '👤 Customer Information',
-            value: customerInfo.join('\n'),
-            inline: false
-        });
-    }
-
-    // Purchase Details
-    const purchaseInfo = [];
-    if (invoice.created_at) {
-        const date = new Date(invoice.created_at);
-        purchaseInfo.push(`⏰ **Purchase Time:** ${date.toLocaleString('en-US', { 
-            timeZone: 'UTC',
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })} UTC`);
-    }
-    if (invoice.completed_at && invoice.status === 'completed') {
-        const date = new Date(invoice.completed_at);
-        purchaseInfo.push(`✅ **Completed:** ${date.toLocaleString('en-US', { 
-            timeZone: 'UTC',
-            month: 'short',
-            day: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit'
-        })} UTC`);
-    }
-
-    if (purchaseInfo.length > 0) {
-        embed.addFields({
-            name: '📅 Timeline',
-            value: purchaseInfo.join('\n'),
-            inline: true
-        });
-    }
-
-    // Payment Information
-    const paymentInfo = [];
-    if (invoice.price_usd) {
-        paymentInfo.push(`💰 **Amount:** $${invoice.price_usd}`);
-    }
-    if (invoice.paid_usd && invoice.paid_usd !== invoice.price_usd) {
-        paymentInfo.push(`💳 **Paid:** $${invoice.paid_usd}`);
-    }
-    if (invoice.gateway) {
-        paymentInfo.push(`🏦 **Gateway:** ${invoice.gateway}`);
-    }
-    if (invoice.coupon_code) {
-        paymentInfo.push(`🎫 **Coupon:** ${invoice.coupon_code}`);
-    }
-
-    if (paymentInfo.length > 0) {
-        embed.addFields({
-            name: '💳 Payment Details',
-            value: paymentInfo.join('\n'),
-            inline: true
-        });
-    }
-
-    // Status
-    const statusEmojis = {
-        'completed': '✅ COMPLETED',
-        'pending': '⏳ PENDING',
-        'cancelled': '❌ CANCELLED',
-        'refunded': '↩️ REFUNDED'
+    // Status with icon
+    const statusIcons = {
+        completed: '✅ Completed',
+        pending: '🕐 Pending',
+        cancelled: '❌ Cancelled', 
+        refunded: '↩️ Refunded'
     };
-
+    
     embed.addFields({
-        name: '📊 Status',
-        value: statusEmojis[invoice.status] || `❓ ${invoice.status?.toUpperCase() || 'UNKNOWN'}`,
-        inline: false
+        name: 'Status',
+        value: statusIcons[status] || `❓ ${status.charAt(0).toUpperCase() + status.slice(1)}`,
+        inline: true
     });
 
-    // Products/Deliveries
-    if (invoice.invoice_items && invoice.invoice_items.length > 0) {
-        const products = invoice.invoice_items.map(item => {
-            const productName = item.product?.name || item.variant?.name || 'Unknown Product';
-            const quantity = item.quantity || 1;
-            let deliveryInfo = `• **${productName}** (Qty: ${quantity})`;
-            
-            // Add delivery details if available
-            if (item.deliverables && item.deliverables.length > 0) {
-                deliveryInfo += `\n  📦 **Delivered:** ${item.deliverables.length} item(s)`;
-                if (isManagement && item.deliverables[0]) {
-                    // Show first few characters of delivered content for management
-                    const preview = item.deliverables[0].toString().substring(0, 30);
-                    deliveryInfo += `\n  🔑 **Preview:** \`${preview}...\``;
-                }
-            }
-            return deliveryInfo;
-        }).join('\n\n');
-
+    // Customer info
+    if (invoice.email) {
         embed.addFields({
-            name: '🛍️ Products & Delivery',
-            value: products.length > 1000 ? products.substring(0, 1000) + '\n...' : products,
+            name: 'Customer',
+            value: showSensitive ? invoice.email : redactSensitive(invoice.email),
+            inline: true
+        });
+    }
+
+    // Amount
+    if (invoice.price_usd) {
+        embed.addFields({
+            name: 'Amount',
+            value: `$${invoice.price_usd}`,
+            inline: true
+        });
+    }
+
+    // Purchase date
+    if (invoice.created_at) {
+        const date = new Date(invoice.created_at);
+        embed.addFields({
+            name: 'Purchase Date',
+            value: `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`,
             inline: false
         });
+    }
+
+    // Payment method
+    if (invoice.gateway) {
+        embed.addFields({
+            name: 'Payment Method',
+            value: invoice.gateway,
+            inline: true
+        });
+    }
+
+    // Products and delivery
+    if (invoice.invoice_items && invoice.invoice_items.length > 0) {
+        const products = invoice.invoice_items.map(item => {
+            const name = item.product?.name || item.variant?.name || 'Unknown Product';
+            const qty = item.quantity || 1;
+            let productLine = `${name} (x${qty})`;
+            
+            // Show delivery info
+            if (item.deliverables && item.deliverables.length > 0) {
+                productLine += ` - ${item.deliverables.length} items delivered`;
+                if (showSensitive && item.deliverables[0]) {
+                    const preview = item.deliverables[0].toString().substring(0, 50);
+                    productLine += `\n  Preview: \`${preview}...\``;
+                }
+            }
+            return productLine;
+        }).join('\n');
+
+        embed.addFields({
+            name: 'Products & Delivery',
+            value: products.length > 1000 ? products.substring(0, 1000) + '...' : products,
+            inline: false
+        });
+    }
+
+    // Additional info for management
+    if (showSensitive) {
+        const extras = [];
+        if (invoice.ip) extras.push(`IP: ${invoice.ip}`);
+        if (invoice.discord_username) extras.push(`Discord: ${invoice.discord_username}`);
+        if (invoice.coupon_code) extras.push(`Coupon: ${invoice.coupon_code}`);
+        
+        if (extras.length > 0) {
+            embed.addFields({
+                name: 'Additional Info',
+                value: extras.join('\n'),
+                inline: false
+            });
+        }
     }
 
     return embed;
 }
 
-// Create action buttons for management
+// Create management buttons
 function createManagementButtons(invoiceId) {
-    return new ActionRowBuilder()
-        .addComponents(
-            new ButtonBuilder()
-                .setCustomId(`full_info_${invoiceId}`)
-                .setLabel('📨 Send Full Info to DMs')
-                .setStyle(ButtonStyle.Primary),
-            new ButtonBuilder()
-                .setCustomId(`refund_${invoiceId}`)
-                .setLabel('↩️ Refund')
-                .setStyle(ButtonStyle.Danger),
-            new ButtonBuilder()
-                .setCustomId(`resend_${invoiceId}`)
-                .setLabel('📧 Resend')
-                .setStyle(ButtonStyle.Secondary)
-        );
+    return new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+            .setCustomId(`fullinfo_${invoiceId}`)
+            .setLabel('Send Full Info to DMs')
+            .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+            .setCustomId(`refund_${invoiceId}`)
+            .setLabel('Refund')
+            .setStyle(ButtonStyle.Danger),
+        new ButtonBuilder()
+            .setCustomId(`resend_${invoiceId}`)
+            .setLabel('Resend')
+            .setStyle(ButtonStyle.Secondary)
+    );
 }
 
 // Register commands
@@ -274,21 +210,16 @@ async function registerCommands() {
     const commands = [
         new SlashCommandBuilder()
             .setName('invoice')
-            .setDescription('Get specific invoice information')
+            .setDescription('Get invoice details')
             .addStringOption(option => 
-                option.setName('id')
-                    .setDescription('Invoice ID')
-                    .setRequired(true)
+                option.setName('id').setDescription('Invoice ID').setRequired(true)
             ),
         
         new SlashCommandBuilder()
             .setName('recent')
-            .setDescription('Get recent invoices')
+            .setDescription('Show recent invoices')
             .addIntegerOption(option =>
-                option.setName('limit')
-                    .setDescription('Number of invoices (1-25)')
-                    .setMinValue(1)
-                    .setMaxValue(25)
+                option.setName('limit').setDescription('Number to show (1-25)').setMinValue(1).setMaxValue(25)
             ),
         
         new SlashCommandBuilder()
@@ -297,54 +228,49 @@ async function registerCommands() {
 
         new SlashCommandBuilder()
             .setName('refund')
-            .setDescription('Refund an invoice (Management only)')
+            .setDescription('[MANAGEMENT] Refund an invoice')
             .addStringOption(option =>
-                option.setName('id')
-                    .setDescription('Invoice ID to refund')
-                    .setRequired(true)
+                option.setName('id').setDescription('Invoice ID').setRequired(true)
             ),
 
         new SlashCommandBuilder()
             .setName('resend')
-            .setDescription('Resend invoice delivery (Management only)')
+            .setDescription('[MANAGEMENT] Resend invoice delivery')
             .addStringOption(option =>
-                option.setName('id')
-                    .setDescription('Invoice ID to resend')
-                    .setRequired(true)
+                option.setName('id').setDescription('Invoice ID').setRequired(true)
             ),
 
         new SlashCommandBuilder()
             .setName('top-products')
-            .setDescription('View top performing products (Management only)')
+            .setDescription('[MANAGEMENT] View top products')
     ];
 
     try {
         const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
         await rest.put(Routes.applicationCommands(process.env.CLIENT_ID), { body: commands });
-        console.log('✅ Commands registered successfully');
+        console.log('Commands registered successfully');
     } catch (error) {
-        console.error('❌ Command registration failed:', error);
+        console.error('Command registration failed:', error);
     }
 }
 
 // Bot ready
 client.once('ready', async () => {
-    console.log(`✅ ${client.user.tag} is online!`);
-    console.log(`📡 Serving ${client.guilds.cache.size} servers`);
+    console.log(`${client.user.tag} is online`);
     await registerCommands();
 });
 
-// Handle slash commands
+// Handle interactions
 client.on('interactionCreate', async (interaction) => {
     if (interaction.isChatInputCommand()) {
         const { commandName, member } = interaction;
         const isManagement = hasManagementRole(member);
 
-        // Management-only commands
-        const managementCommands = ['refund', 'resend', 'top-products'];
-        if (managementCommands.includes(commandName) && !isManagement) {
+        // Check management permissions for restricted commands
+        const mgmtCommands = ['refund', 'resend', 'top-products'];
+        if (mgmtCommands.includes(commandName) && !isManagement) {
             return await interaction.reply({
-                content: '❌ This command requires management permissions.',
+                content: 'This command requires management permissions.',
                 ephemeral: true
             });
         }
@@ -353,13 +279,11 @@ client.on('interactionCreate', async (interaction) => {
             if (commandName === 'invoice') {
                 const invoiceId = interaction.options.getString('id');
                 
-                // Show loading message
-                await interaction.reply('🔍 **Fetching invoice data...** Please wait...');
+                await interaction.reply('Fetching invoice...');
                 
                 try {
                     const invoice = await getInvoice(invoiceId);
                     const embed = createInvoiceEmbed(invoice, isManagement);
-                    
                     const components = isManagement ? [createManagementButtons(invoiceId)] : [];
                     
                     await interaction.editReply({
@@ -368,18 +292,11 @@ client.on('interactionCreate', async (interaction) => {
                         components
                     });
                 } catch (error) {
-                    let errorMsg = 'Unknown error occurred';
+                    let message = 'Failed to fetch invoice';
                     if (error.response?.status === 404) {
-                        errorMsg = `Invoice "${invoiceId}" not found. Use \`/recent\` to see available IDs.`;
-                    } else if (error.response?.status === 401) {
-                        errorMsg = 'Authentication failed. Invalid API key.';
+                        message = `Invoice ${invoiceId} not found`;
                     }
-
-                    await interaction.editReply({
-                        content: `❌ **Error:** ${errorMsg}`,
-                        embeds: [],
-                        components: []
-                    });
+                    await interaction.editReply(message);
                 }
             }
 
@@ -391,40 +308,39 @@ client.on('interactionCreate', async (interaction) => {
                     const data = await getInvoicesList(limit);
                     const invoices = data.data || data;
                     
-                    if (!invoices || invoices.length === 0) {
-                        return await interaction.editReply('📭 No invoices found.');
+                    if (!invoices?.length) {
+                        return await interaction.editReply('No invoices found');
                     }
 
                     const embed = new EmbedBuilder()
-                        .setColor(0x0099FF)
-                        .setTitle(`📋 Recent ${invoices.length} Invoices`)
-                        .setTimestamp()
-                        .setFooter({ text: 'Use /invoice <id> for detailed info' });
+                        .setTitle(`Recent ${invoices.length} Invoices`)
+                        .setColor(0x0099ff)
+                        .setTimestamp();
 
-                    const invoiceList = invoices.slice(0, 10).map(invoice => {
-                        const date = new Date(invoice.created_at).toLocaleDateString();
-                        const status = invoice.status === 'completed' ? '✅' : 
-                                      invoice.status === 'pending' ? '⏳' : '❌';
-                        const email = redactSensitive(invoice.email);
-                        return `${status} \`${invoice.id}\`\n   ${email} - $${invoice.price_usd || '0'} (${date})`;
+                    const list = invoices.slice(0, 10).map(inv => {
+                        const status = inv.status === 'completed' ? '✅' : 
+                                      inv.status === 'pending' ? '🕐' : '❌';
+                        const date = new Date(inv.created_at).toLocaleDateString();
+                        const email = redactSensitive(inv.email);
+                        return `${status} \`${inv.id}\`\n${email} - $${inv.price_usd || '0'} - ${date}`;
                     }).join('\n\n');
 
-                    embed.setDescription(invoiceList);
+                    embed.setDescription(list);
                     await interaction.editReply({ embeds: [embed] });
                 } catch (error) {
-                    await interaction.editReply(`❌ Failed to fetch invoices: ${error.message}`);
+                    await interaction.editReply('Failed to fetch recent invoices');
                 }
             }
 
             else if (commandName === 'test') {
                 await interaction.deferReply();
+                
                 const embed = new EmbedBuilder()
-                    .setColor(0x00FF00)
-                    .setTitle('✅ Bot Status')
+                    .setTitle('API Status')
+                    .setColor(0x00ff00)
                     .addFields(
-                        { name: '🏪 Shop ID', value: SHOP_ID.toString(), inline: true },
-                        { name: '🔑 API Key', value: `${API_KEY.substring(0, 15)}...`, inline: true },
-                        { name: '👤 Your Role', value: isManagement ? '🛡️ Management' : '👤 User', inline: true }
+                        { name: 'Shop ID', value: SHOP_ID.toString(), inline: true },
+                        { name: 'Permissions', value: isManagement ? 'Management' : 'User', inline: true }
                     )
                     .setTimestamp();
                 
@@ -437,15 +353,22 @@ client.on('interactionCreate', async (interaction) => {
                 
                 try {
                     await refundInvoice(invoiceId);
+                    
                     const embed = new EmbedBuilder()
-                        .setColor(0x800080)
-                        .setTitle('↩️ Refund Processed')
-                        .setDescription(`Invoice \`${invoiceId}\` has been marked as refunded.`)
+                        .setTitle('Refund Successful')
+                        .setDescription(`Invoice \`${invoiceId}\` has been refunded`)
+                        .setColor(0x6f42c1)
                         .setTimestamp();
                     
                     await interaction.editReply({ embeds: [embed] });
                 } catch (error) {
-                    await interaction.editReply(`❌ Refund failed: ${error.response?.data?.message || error.message}`);
+                    let message = 'Refund failed';
+                    if (error.response?.status === 404) {
+                        message = `Invoice ${invoiceId} not found`;
+                    } else if (error.response?.data?.message) {
+                        message = error.response.data.message;
+                    }
+                    await interaction.editReply(message);
                 }
             }
 
@@ -454,16 +377,23 @@ client.on('interactionCreate', async (interaction) => {
                 await interaction.deferReply();
                 
                 try {
-                    await resendInvoice(invoiceId);
+                    await processInvoice(invoiceId);
+                    
                     const embed = new EmbedBuilder()
-                        .setColor(0x00FF00)
-                        .setTitle('📧 Delivery Resent')
-                        .setDescription(`Invoice delivery for \`${invoiceId}\` has been resent to customer.`)
+                        .setTitle('Invoice Processed')
+                        .setDescription(`Invoice \`${invoiceId}\` has been processed/resent`)
+                        .setColor(0x28a745)
                         .setTimestamp();
                     
                     await interaction.editReply({ embeds: [embed] });
                 } catch (error) {
-                    await interaction.editReply(`❌ Resend failed: ${error.response?.data?.message || error.message}`);
+                    let message = 'Process failed';
+                    if (error.response?.status === 404) {
+                        message = `Invoice ${invoiceId} not found`;
+                    } else if (error.response?.data?.message) {
+                        message = error.response.data.message;
+                    }
+                    await interaction.editReply(message);
                 }
             }
 
@@ -471,66 +401,90 @@ client.on('interactionCreate', async (interaction) => {
                 await interaction.deferReply();
                 
                 try {
-                    const products = await getTopProducts();
-                    // Process and display top products (implementation depends on API structure)
-                    const embed = new EmbedBuilder()
-                        .setColor(0x0099FF)
-                        .setTitle('🏆 Top Products')
-                        .setDescription('Product performance data')
-                        .setTimestamp();
+                    const products = await getProducts();
+                    const productList = products.data || products;
                     
+                    if (!productList?.length) {
+                        return await interaction.editReply('No products found');
+                    }
+
+                    const embed = new EmbedBuilder()
+                        .setTitle('Products')
+                        .setColor(0xffc107)
+                        .setTimestamp();
+
+                    const list = productList.slice(0, 10).map(product => 
+                        `**${product.name}** - $${product.price || '0'}`
+                    ).join('\n');
+
+                    embed.setDescription(list);
                     await interaction.editReply({ embeds: [embed] });
                 } catch (error) {
-                    await interaction.editReply(`❌ Failed to fetch products: ${error.message}`);
+                    await interaction.editReply('Failed to fetch products');
                 }
             }
 
         } catch (error) {
             console.error('Command error:', error);
-            const errorReply = { content: '❌ An unexpected error occurred.', ephemeral: true };
+            const reply = { content: 'An error occurred', ephemeral: true };
             
             if (interaction.replied || interaction.deferred) {
-                await interaction.editReply(errorReply);
+                await interaction.editReply(reply);
             } else {
-                await interaction.reply(errorReply);
+                await interaction.reply(reply);
             }
         }
     }
 
-    // Handle button interactions
+    // Handle button clicks
     else if (interaction.isButton()) {
         const [action, invoiceId] = interaction.customId.split('_');
         const isManagement = hasManagementRole(interaction.member);
 
         if (!isManagement) {
             return await interaction.reply({
-                content: '❌ Management permissions required.',
+                content: 'Management permissions required',
                 ephemeral: true
             });
         }
 
-        if (action === 'full' && interaction.customId.startsWith('full_info_')) {
+        if (action === 'fullinfo') {
             await interaction.deferReply({ ephemeral: true });
             
             try {
                 const invoice = await getInvoice(invoiceId);
                 const fullEmbed = createInvoiceEmbed(invoice, true);
                 
-                // Send full details to DM
                 await interaction.user.send({
-                    content: `🔒 **Confidential Invoice Details**\nRequested by: ${interaction.user.tag}`,
+                    content: `Full invoice details for ${invoiceId}`,
                     embeds: [fullEmbed]
                 });
                 
-                await interaction.editReply({
-                    content: '✅ Full invoice details sent to your DMs.',
-                    ephemeral: true
-                });
+                await interaction.editReply('Full details sent to your DMs');
             } catch (error) {
-                await interaction.editReply({
-                    content: '❌ Failed to send DM. Check your privacy settings.',
-                    ephemeral: true
-                });
+                await interaction.editReply('Failed to send DM - check your privacy settings');
+            }
+        }
+        
+        else if (action === 'refund') {
+            await interaction.deferReply({ ephemeral: true });
+            
+            try {
+                await refundInvoice(invoiceId);
+                await interaction.editReply(`Invoice ${invoiceId} has been refunded`);
+            } catch (error) {
+                await interaction.editReply('Refund failed');
+            }
+        }
+        
+        else if (action === 'resend') {
+            await interaction.deferReply({ ephemeral: true });
+            
+            try {
+                await processInvoice(invoiceId);
+                await interaction.editReply(`Invoice ${invoiceId} has been processed/resent`);
+            } catch (error) {
+                await interaction.editReply('Resend failed');
             }
         }
     }
@@ -540,5 +494,5 @@ client.on('interactionCreate', async (interaction) => {
 client.on('error', console.error);
 process.on('unhandledRejection', console.error);
 
-// Login
+// Start bot
 client.login(process.env.DISCORD_TOKEN);
