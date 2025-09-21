@@ -1,6 +1,7 @@
 {
-  "name": "discord-bot",
+  "name": "sellauth-discord-bot",
   "version": "1.0.0",
+  "description": "SellAuth invoice lookup Discord bot",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
