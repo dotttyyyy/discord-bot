@@ -8,7 +8,7 @@ const client = new Client({
 
 // API Configuration
 const API_KEY = '5244265|C0ovkR6WFbzBV5R3lA6DPx5gIgA4KYf6NL8EwZHx7102715a';
-const SHOP_ID = 5244265; // Integer as per documentation
+const SHOP_ID = 121609; // Correct shop ID
 const BASE_URL = 'https://api.sellauth.com/v1';
 
 // Redact sensitive information
