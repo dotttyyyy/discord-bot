@@ -7,15 +7,15 @@ const client = new Client({
 });
 
 const SELLAUTH_API_KEY = '5244265|C0ovkR6WFbzBV5R3lA6DPx5gIgA4KYf6NL8EwZHx7102715a';
-const SHOP_ID = '5244247';
+const SHOP_ID = '5244265';
 
 // Test multiple API endpoints to find the right one
 async function getInvoice(invoiceId) {
     const endpoints = [
+        `https://api.sellauth.com/v1/shops/${SHOP_ID}/invoices/${invoiceId}`,
         `https://api.sellauth.com/shops/${SHOP_ID}/invoices/${invoiceId}`,
         `https://sellauth.com/api/v1/shops/${SHOP_ID}/invoices/${invoiceId}`,
-        `https://api.sellauth.com/v1/shops/${SHOP_ID}/invoices/${invoiceId}`,
-        `https://sellauth.com/api/invoices/${invoiceId}`,
+        `https://api.sellauth.com/v1/invoices/${invoiceId}`,
         `https://api.sellauth.com/invoices/${invoiceId}`
     ];
     
