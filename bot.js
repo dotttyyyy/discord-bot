@@ -11,8 +11,9 @@ const client = new Client({
 });
 
 // SellAuth API configuration
-const SELLAUTH_API_BASE = 'https://sellauth.com/api/v1';
+const SELLAUTH_API_BASE = 'https://api.sellauth.com';
 const SELLAUTH_API_KEY = '5244247|Fzn2eH0AmFVWaI5qHWr7IZWU6LSUvxtTpL4ztttE07d9729a';
+const SHOP_ID = process.env.SHOP_ID || '5244247'; // Your shop ID from the API key
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
@@ -38,13 +39,14 @@ function redactSensitiveInfo(text) {
 // Function to fetch invoice data from SellAuth API
 async function getInvoiceData(invoiceId) {
     try {
-        const response = await axios.get(`${SELLAUTH_API_BASE}/invoices/${invoiceId}`, {
+        const response = await axios.get(`${SELLAUTH_API_BASE}/shops/${SHOP_ID}/invoices/${invoiceId}`, {
             headers: {
                 'Authorization': `Bearer ${SELLAUTH_API_KEY}`,
                 'Content-Type': 'application/json'
             }
         });
         
+        console.log('API Response:', JSON.stringify(response.data, null, 2));
         return response.data;
     } catch (error) {
         console.error('Error fetching invoice data:', error.response?.data || error.message);
@@ -54,12 +56,14 @@ async function getInvoiceData(invoiceId) {
 
 // Function to format invoice data into Discord embed
 function createInvoiceEmbed(invoiceData) {
+    console.log('Creating embed for:', invoiceData);
+    
     const embed = new EmbedBuilder()
         .setColor(0x0099FF)
         .setTitle(`📄 Invoice #${invoiceData.id || 'N/A'}`)
         .setTimestamp();
 
-    // Add basic invoice information
+    // Add customer email (redacted)
     if (invoiceData.email) {
         embed.addFields({ 
             name: '📧 Customer Email', 
@@ -78,11 +82,14 @@ function createInvoiceEmbed(invoiceData) {
         });
     }
 
-    // Add key deliveries/products
-    if (invoiceData.products && invoiceData.products.length > 0) {
-        const products = invoiceData.products.map(product => 
-            `• ${product.name || 'Unknown Product'} (Qty: ${product.quantity || 1})`
-        ).join('\n');
+    // Add products/keys delivered
+    if (invoiceData.invoice_items && invoiceData.invoice_items.length > 0) {
+        const products = invoiceData.invoice_items.map(item => {
+            const productName = item.product?.name || item.variant?.name || 'Unknown Product';
+            const quantity = item.quantity || 1;
+            return `• ${productName} (Qty: ${quantity})`;
+        }).join('\n');
+        
         embed.addFields({ 
             name: '🔑 Products/Keys Delivered', 
             value: products, 
@@ -90,16 +97,16 @@ function createInvoiceEmbed(invoiceData) {
         });
     }
 
-    // Add amount
-    if (invoiceData.total) {
+    // Add total amount
+    if (invoiceData.price_usd) {
         embed.addFields({ 
             name: '💰 Total Amount', 
-            value: `$${invoiceData.total}`, 
+            value: `${invoiceData.price_usd}`, 
             inline: true 
         });
     }
 
-    // Add status
+    // Add payment status
     if (invoiceData.status) {
         embed.addFields({ 
             name: '📊 Status', 
@@ -108,12 +115,23 @@ function createInvoiceEmbed(invoiceData) {
         });
     }
 
-    // Add other information (redacted)
+    // Add gateway info
+    if (invoiceData.gateway) {
+        embed.addFields({ 
+            name: '💳 Payment Gateway', 
+            value: invoiceData.gateway, 
+            inline: true 
+        });
+    }
+
+    // Add other information (with sensitive data redacted)
     const otherInfo = [];
-    if (invoiceData.gateway) otherInfo.push(`Gateway: ${invoiceData.gateway}`);
-    if (invoiceData.currency) otherInfo.push(`Currency: ${invoiceData.currency}`);
-    if (invoiceData.customer_ip) otherInfo.push(`IP: [REDACTED]`);
-    if (invoiceData.user_agent) otherInfo.push(`User Agent: ${redactSensitiveInfo(invoiceData.user_agent)}`);
+    if (invoiceData.ip) otherInfo.push(`IP: [REDACTED]`);
+    if (invoiceData.completed_at) {
+        const completedDate = new Date(invoiceData.completed_at);
+        otherInfo.push(`Completed: ${completedDate.toLocaleString()}`);
+    }
+    if (invoiceData.coupon_code) otherInfo.push(`Coupon: ${invoiceData.coupon_code}`);
     
     if (otherInfo.length > 0) {
         embed.addFields({ 
