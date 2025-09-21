@@ -303,12 +303,14 @@ client.on('interactionCreate', async (interaction) => {
                     .setTitle(`📋 Recent ${invoices.length} Invoices`)
                     .setTimestamp();
 
-                const invoiceList = invoices.slice(0, 15).map(invoice => {
+                const invoiceList = invoices.slice(0, 10).map(invoice => {
                     const date = new Date(invoice.created_at).toLocaleDateString();
                     const status = invoice.status === 'completed' ? '✅' : invoice.status === 'pending' ? '⏳' : '❌';
                     const email = redactSensitive(invoice.email);
-                    return `${status} **${invoice.id}** - ${email} - $${invoice.price_usd || '0'} (${date})`;
-                }).join('\n');
+                    // Show full invoice ID
+                    const fullId = invoice.id || 'Unknown';
+                    return `${status} \`${fullId}\`\n   ${email} - ${invoice.price_usd || '0'} (${date})`;
+                }).join('\n\n');
 
                 embed.setDescription(invoiceList);
                 
