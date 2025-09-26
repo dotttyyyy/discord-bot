@@ -136,7 +136,10 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('Helping users', { type: 'WATCHING' });
+    client.user.setPresence({
+        activities: [{ name: 'Helping users', type: 4 }],
+        status: 'online'
+    });
 });
 
 client.on('interactionCreate', async (interaction) => {
