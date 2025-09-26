@@ -1,4 +1,449 @@
-const { Client, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder, REST, Routes } = require('discord.js');
+await interaction.reply({ embeds: [ticketDoneEmbedFR] });
+    }
+
+    // Status Commands
+    if (commandName === 'statuseng') {
+        const statusEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Product Status')
+            .setDescription('Check the current status of all our products and services.')
+            .addFields(
+                {
+                    name: '🔗 Status Page',
+                    value: '[View Live Status](https://dottyservices.online/status)\nMonitor real-time status updates for all products',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Important Notice',
+                    value: 'Always check the status page before using any products to ensure optimal performance and avoid potential issues.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Status Team • Always check before use' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbed] });
+    }
+
+    if (commandName === 'statusdu') {
+        const statusEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Produktstatus')
+            .setDescription('Überprüfen Sie den aktuellen Status aller unserer Produkte und Dienstleistungen.')
+            .addFields(
+                {
+                    name: '🔗 Status-Seite',
+                    value: '[Live-Status anzeigen](https://dottyservices.online/status)\nÜberwachen Sie Echtzeit-Status-Updates für alle Produkte',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Wichtiger Hinweis',
+                    value: 'Überprüfen Sie immer die Status-Seite vor der Verwendung von Produkten, um optimale Leistung zu gewährleisten und potenzielle Probleme zu vermeiden.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Status Team • Immer vor Gebrauch prüfen' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbedDE] });
+    }
+
+    if (commandName === 'statusfr') {
+        const statusEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Statut des Produits')
+            .setDescription('Vérifiez le statut actuel de tous nos produits et services.')
+            .addFields(
+                {
+                    name: '🔗 Page de Statut',
+                    value: '[Voir le Statut en Direct](https://dottyservices.online/status)\nSurveiller les mises à jour de statut en temps réel pour tous les produits',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Avis Important',
+                    value: 'Vérifiez toujours la page de statut avant d\'utiliser des produits pour assurer des performances optimales et éviter des problèmes potentiels.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Statut • Toujours vérifier avant utilisation' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbedFR] });
+    }
+
+    // Unlocker Help Commands
+    if (commandName === 'unlockerhelpeng') {
+        const unlockerEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🔓 Unlocker Help Guide')
+            .setDescription('Need help with the unlocker? Follow our comprehensive video guide.')
+            .addFields(
+                {
+                    name: '🎥 Video Tutorial',
+                    value: '[Watch Help Video](https://streamable.com/zn260n)\nStep-by-step instructions for unlocker usage',
+                    inline: false
+                },
+                {
+                    name: '📋 Instructions',
+                    value: 'Please follow the video tutorial carefully for proper unlocker setup and usage. The video covers all essential steps.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Unlocker Support • Follow the video guide' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [unlockerEmbed] });
+    }
+
+    if (commandName === 'unlockerhelpdu') {
+        const unlockerEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🔓 Unlocker-Hilfe-Leitfaden')
+            .setDescription('Benötigen Sie Hilfe mit dem Unlocker? Folgen Sie unserem umfassenden Video-Leitfaden.')
+            .addFields(
+                {
+                    name: '🎥 Video-Tutorial',
+                    value: '[Hilfe-Video ansehen](https://streamable.com/zn260n)\nSchritt-für-Schritt-Anleitung für die Unlocker-Nutzung',
+                    inline: false
+                },
+                {
+                    name: '📋 Anweisungen',
+                    value: 'Bitte folgen Sie dem Video-Tutorial sorgfältig für die ordnungsgemäße Unlocker-Einrichtung und -Nutzung. Das Video deckt alle wesentlichen Schritte ab.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Unlocker-Support • Folgen Sie der Video-Anleitung' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [unlockerEmbedDE] });
+    }
+
+    if (commandName === 'unlockerhelpfr') {
+        const unlockerEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🔓 Guide d\'Aide Unlocker')
+            .setDescription('Besoin d\'aide avec l\'unlocker? Suivez notre guide vidéo complet.')
+            .addFields(
+                {
+                    name: '🎥 Tutoriel Vidéo',
+                    value: '[Regarder la Vidéo d\'Aide](https://streamable.com/zn260n)\nInstructions étape par étape pour l\'utilisation de l\'unlocker',
+                    inline: false
+                },
+                {
+                    name: '📋 Instructions',
+                    value: 'Veuillez suivre attentivement le tutoriel vidéo pour une configuration et utilisation appropriée de l\'unlocker. La vidéo couvre toutes les étapes essentielles.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Support Unlocker • Suivez le guide vidéo' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [unlockerEmbedFR] });
+    }
+
+    // Setup Guide Commands
+    if (commandName === 'setupguideeng') {
+        const setupEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⚙️ Product Setup Guide')
+            .setDescription('Complete setup guide for all our products and services.')
+            .addFields(
+                {
+                    name: '📖 Setup Documentation',
+                    value: '[View Setup Guide](https://dottyservices.online/setup)\nComprehensive setup instructions for all products',
+                    inline: false
+                },
+                {
+                    name: '🔧 Installation Help',
+                    value: 'Follow the setup guide carefully for proper installation and configuration of your products.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Setup Team • Follow the complete guide' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [setupEmbed] });
+    }
+
+    if (commandName === 'setupguidedu') {
+        const setupEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⚙️ Produkt-Setup-Leitfaden')
+            .setDescription('Vollständiger Setup-Leitfaden für alle unsere Produkte und Dienstleistungen.')
+            .addFields(
+                {
+                    name: '📖 Setup-Dokumentation',
+                    value: '[Setup-Leitfaden anzeigen](https://dottyservices.online/setup)\nUmfassende Setup-Anweisungen für alle Produkte',
+                    inline: false
+                },
+                {
+                    name: '🔧 Installationshilfe',
+                    value: 'Folgen Sie dem Setup-Leitfaden sorgfältig für die ordnungsgemäße Installation und Konfiguration Ihrer Produkte.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Setup Team • Folgen Sie dem vollständigen Leitfaden' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [setupEmbedDE] });
+    }
+
+    if (commandName === 'setupguidefr') {
+        const setupEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⚙️ Guide de Configuration des Produits')
+            .setDescription('Guide de configuration complet pour tous nos produits et services.')
+            .addFields(
+                {
+                    name: '📖 Documentation de Configuration',
+                    value: '[Voir le Guide de Configuration](https://dottyservices.online/setup)\nInstructions de configuration complètes pour tous les produits',
+                    inline: false
+                },
+                {
+                    name: '🔧 Aide à l\'Installation',
+                    value: 'Suivez attentivement le guide de configuration pour une installation et configuration appropriée de vos produits.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Configuration • Suivez le guide complet' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [setupEmbedFR] });
+    }
+
+    // All Commands List (Staff Only)
+    if (commandName === 'allcmds') {
+        const allCmdsEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🤖 All Bot Commands')
+            .setDescription('Complete list of available bot commands for support staff.')
+            .addFields(
+                {
+                    name: '📋 Support Ticket Commands',
+                    value: '`/supportticketeng` - Support requirements (English)\n`/supportticketdu` - Support requirements (German)\n`/supportticketfr` - Support requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '🔄 HWID Reset Commands',
+                    value: '`/hwidreseteng` - HWID reset requirements (English)\n`/hwidresetdu` - HWID reset requirements (German)\n`/hwidresetfr` - HWID reset requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '✅ HWID Reset Done Commands',
+                    value: '`/hwidresetdoneeng` - Notify reset complete (English)\n`/hwidresetdonedu` - Notify reset complete (German)\n`/hwidresetdonefr` - Notify reset complete (French)',
+                    inline: false
+                },
+                {
+                    name: '🎉 Ticket Done Commands',
+                    value: '`/ticketdoneeng` - Thank user & close ticket (English)\n`/ticketdonedu` - Thank user & close ticket (German)\n`/ticketdonefr` - Thank user & close ticket (French)',
+                    inline: false
+                },
+                {
+                    name: '📊 Status Commands',
+                    value: '`/statuseng` - Product status page (English)\n`/statusdu` - Product status page (German)\n`/statusfr` - Product status page (French)',
+                    inline: false
+                },
+                {
+                    name: '🔓 Unlocker Help Commands',
+                    value: '`/unlockerhelpeng` - Unlocker video guide (English)\n`/unlockerhelpdu` - Unlocker video guide (German)\n`/unlockerhelpfr` - Unlocker video guide (French)',
+                    inline: false
+                },
+                {
+                    name: '⚙️ Setup Guide Commands',
+                    value: '`/setupguideeng` - Product setup guide (English)\n`/setupguidedu` - Product setup guide (German)\n`/setupguidefr` - Product setup guide (French)',
+                    inline: false
+                },
+                {
+                    name: '📝 Staff Commands',
+                    value: '`/allcmds` - Display all commands (Staff Only)',
+                    inline: false
+                },
+                {
+                    name: '💰 Refund Process Commands',
+                    value: '`/refundprocesseng` - Refund policy & process (English)\n`/refundprocessdu` - Refund policy & process (German)\n`/refundprocessfr` - Refund policy & process (French)',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Bot Commands • Total: 25 Commands' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [allCmdsEmbed] });
+    }
+
+    // Refund Process Commands
+    if (commandName === 'refundprocesseng') {
+        const refundEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('💰 Refund Policy & Process')
+            .setDescription('Our refund policy in accordance with EU and German consumer protection laws.')
+            .addFields(
+                {
+                    name: '✅ Eligibility for Refunds',
+                    value: '• Digital content not delivered due to technical issues on our side\n• Product is unusable due to technical problems from our end\n• Must be requested within 14 days of purchase',
+                    inline: false
+                },
+                {
+                    name: '❌ Refund Limitations',
+                    value: '• Refunds are not guaranteed if the product has been accessed, downloaded, or used successfully\n• Must comply with EU Directive 2011/83/EU on Consumer Rights',
+                    inline: false
+                },
+                {
+                    name: '📧 How to Request',
+                    value: 'Contact us at: dottywotty1234@outlook.com\nInclude your purchase details and reason for refund request',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Refund Team • EU Consumer Rights Protected' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [refundEmbed] });
+    }
+
+    if (commandName === 'refundprocessdu') {
+        const refundEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('💰 Rückerstattungsrichtlinie & Verfahren')
+            .setDescription('Unsere Rückerstattungsrichtlinie in Übereinstimmung mit EU- und deutschen Verbraucherschutzgesetzen.')
+            .addFields(
+                {
+                    name: '✅ Berechtigung für Rückerstattungen',
+                    value: '• Digitale Inhalte nicht geliefert aufgrund technischer Probleme unsererseits\n• Produkt ist aufgrund technischer Probleme von unserer Seite unbrauchbar\n• Muss innerhalb von 14 Tagen nach dem Kauf beantragt werden',
+                    inline: false
+                },
+                {
+                    name: '❌ Rückerstattungsbeschränkungen',
+                    value: '• Rückerstattungen sind nicht garantiert, wenn das Produkt bereits aufgerufen, heruntergeladen oder erfolgreich verwendet wurde\n• Muss der EU-Richtlinie 2011/83/EU über Verbraucherrechte entsprechen',
+                    inline: false
+                },
+                {
+                    name: '📧 Wie man anfragt',
+                    value: 'Kontaktieren Sie uns unter: dottywotty1234@outlook.com\nFügen Sie Ihre Kaufdetails und den Grund für die Rückerstattungsanfrage bei',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Rückerstattungsteam • EU-Verbraucherrechte geschützt' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [refundEmbedDE] });
+    }
+
+    if (commandName === 'refundprocessfr') {
+        const refundEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('💰 Politique de Remboursement & Processus')
+            .setDescription('Notre politique de remboursement conforme aux lois de protection des consommateurs de l\'UE et d\'Allemagne.')
+            .addFields(
+                {
+                    name: '✅ Éligibilité aux Remboursements',
+                    value: '• Contenu numérique non livré en raison de problèmes techniques de notre côté\n• Produit inutilisable en raison de problèmes techniques de notre côté\n• Doit être demandé dans les 14 jours suivant l\'achat',
+                    inline: false
+                },
+                {
+                    name: '❌ Limitations de Remboursement',
+                    value: '• Les remboursements ne sont pas garantis si le produit a été consulté, téléchargé ou utilisé avec succès\n• Doit être conforme à la Directive UE 2011/83/UE sur les droits des consommateurs',
+                    inline: false
+                },
+                {
+                    name: '📧 Comment Demander',
+                    value: 'Contactez-nous à: dottywotty1234@outlook.com\nIncluez vos détails d\'achat et la raison de la demande de remboursement',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Remboursement • Droits des Consommateurs UE Protégés' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [refundEmbedFR] });
+    }
+
+    // Status Commands
+    if (commandName === 'statuseng') {
+        const statusEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Product Status')
+            .setDescription('Check the current status of all our products and services.')
+            .addFields(
+                {
+                    name: '🔗 Status Page',
+                    value: '[View Live Status](https://dottyservices.online/status)\nMonitor real-time status updates for all products',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Important Notice',
+                    value: 'Always check the status page before using any products to ensure optimal performance and avoid potential issues.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Status Team • Always check before use' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbed] });
+    }
+
+    if (commandName === 'statusdu') {
+        const statusEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Produktstatus')
+            .setDescription('Überprüfen Sie den aktuellen Status aller unserer Produkte und Dienstleistungen.')
+            .addFields(
+                {
+                    name: '🔗 Status-Seite',
+                    value: '[Live-Status anzeigen](https://dottyservices.online/status)\nÜberwachen Sie Echtzeit-Status-Updates für alle Produkte',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Wichtiger Hinweis',
+                    value: 'Überprüfen Sie immer die Status-Seite vor der Verwendung von Produkten, um optimale Leistung zu gewährleisten und potenzielle Probleme zu vermeiden.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Status Team • Immer vor Gebrauch prüfen' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbedDE] });
+    }
+
+    if (commandName === 'statusfr') {
+        const statusEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('📊 Statut des Produits')
+            .setDescription('Vérifiez le statut actuel de tous nos produits et services.')
+            .addFields(
+                {
+                    name: '🔗 Page de Statut',
+                    value: '[Voir le Statut en Direct](https://dottyservices.online/status)\nSurveiller les mises à jour de statut en temps réel pour tous les produits',
+                    inline: false
+                },
+                {
+                    name: '⚠️ Avis Important',
+                    value: 'Vérifiez toujours la page de statut avant d\'utiliser des produits pour assurer des performances optimales et éviter des problèmes potentiels.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Statut • Toujours vérifier avant utilisation' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [statusEmbedFR] });
+    }
+
+    // Unlocker Help Commands
+    if (commandName === 'unlockerhelpeng') {
+        const unlockerEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🔓 Unlocker Help Guide')
+            .setDescription('Need help with the unlocker? Follow our comprehensive video guide.')
+            .addFields(
+                {
+                    name: '🎥 Video Tutorial',
+                    value: '[Watch Help Video](https://streamable.com/zn260n)\nStep-by-step instructions for unlocker usage',
+                    inline: false
+                },
+                {
+                    name: '📋 Instructions',
+                    value: 'Please follow the video tutorial carefully for proper unlocker setup and usage. The video covers all essential steps.',
+                    inline: false
+                }
+            )
+            .setFooter({ text:const { Client, GatewayIntentBits, SlashCommandBuilder, EmbedBuilder, REST, Routes } = require('discord.js');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages]
@@ -56,7 +501,64 @@ const commands = [
     
     new SlashCommandBuilder()
         .setName('ticketdonefr')
-        .setDescription('Thank user and notify ticket will be closed shortly (French)')
+        .setDescription('Thank user and notify ticket will be closed shortly (French)'),
+    
+    // Status Commands
+    new SlashCommandBuilder()
+        .setName('statuseng')
+        .setDescription('Display product status and status page link (English)'),
+    
+    new SlashCommandBuilder()
+        .setName('statusdu')
+        .setDescription('Display product status and status page link (German)'),
+    
+    new SlashCommandBuilder()
+        .setName('statusfr')
+        .setDescription('Display product status and status page link (French)'),
+    
+    // Unlocker Help Commands
+    new SlashCommandBuilder()
+        .setName('unlockerhelpeng')
+        .setDescription('Provide unlocker help video and instructions (English)'),
+    
+    new SlashCommandBuilder()
+        .setName('unlockerhelpdu')
+        .setDescription('Provide unlocker help video and instructions (German)'),
+    
+    new SlashCommandBuilder()
+        .setName('unlockerhelpfr')
+        .setDescription('Provide unlocker help video and instructions (French)'),
+    
+    // Setup Guide Commands
+    new SlashCommandBuilder()
+        .setName('setupguideeng')
+        .setDescription('Provide setup guide for all products (English)'),
+    
+    new SlashCommandBuilder()
+        .setName('setupguidedu')
+        .setDescription('Provide setup guide for all products (German)'),
+    
+    new SlashCommandBuilder()
+        .setName('setupguidefr')
+        .setDescription('Provide setup guide for all products (French)'),
+    
+    // All Commands List (Staff Only)
+    new SlashCommandBuilder()
+        .setName('allcmds')
+        .setDescription('Display all available bot commands (Staff Only)'),
+    
+    // Refund Process Commands
+    new SlashCommandBuilder()
+        .setName('refundprocesseng')
+        .setDescription('Display refund policy and process (English)'),
+    
+    new SlashCommandBuilder()
+        .setName('refundprocessdu')
+        .setDescription('Display refund policy and process (German)'),
+    
+    new SlashCommandBuilder()
+        .setName('refundprocessfr')
+        .setDescription('Display refund policy and process (French)')
 ];
 
 // Register slash commands
@@ -79,7 +581,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
 
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
-    client.user.setActivity('Supporting users', { type: 'WATCHING' });
+    client.user.setActivity('Helping users', { type: 'WATCHING' });
 });
 
 client.on('interactionCreate', async interaction => {
