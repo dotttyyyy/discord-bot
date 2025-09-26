@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, REST, Routes } = require('discord.js');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -6,12 +6,99 @@ const client = new Client({
 
 const prefix = '.';
 
+// Register slash command for allcmds
+const commands = [
+    new SlashCommandBuilder()
+        .setName('allcmds')
+        .setDescription('Display all available bot commands (Staff Quick Reference)')
+];
+
+const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
+
+(async () => {
+    try {
+        console.log('Started refreshing application (/) commands.');
+        await rest.put(
+            Routes.applicationCommands(process.env.CLIENT_ID),
+            { body: commands }
+        );
+        console.log('Successfully reloaded application (/) commands.');
+    } catch (error) {
+        console.error(error);
+    }
+})();
+
 client.once('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setPresence({
         activities: [{ name: 'Doing things others cant.', type: 4 }],
         status: 'online'
     });
+});
+
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isChatInputCommand()) return;
+
+    const { commandName } = interaction;
+
+    // Slash command for allcmds (ephemeral - only visible to staff member)
+    if (commandName === 'allcmds') {
+        const allCmdsEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🤖 All Bot Commands - Quick Reference')
+            .setDescription('Complete list of available bot commands for support staff.')
+            .addFields(
+                {
+                    name: '📋 Support Ticket Commands',
+                    value: '`.supportticketeng` - Support requirements (English)\n`.supportticketdu` - Support requirements (German)\n`.supportticketfr` - Support requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '🔄 HWID Reset Commands',
+                    value: '`.hwidreseteng` - HWID reset requirements (English)\n`.hwidresetdu` - HWID reset requirements (German)\n`.hwidresetfr` - HWID reset requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '✅ HWID Reset Done Commands',
+                    value: '`.hwidresetdoneeng` - Notify reset complete (English)\n`.hwidresetdonedu` - Notify reset complete (German)\n`.hwidresetdonefr` - Notify reset complete (French)',
+                    inline: false
+                },
+                {
+                    name: '🎉 Ticket Done Commands',
+                    value: '`.ticketdoneeng` - Thank user & close ticket (English)\n`.ticketdonedu` - Thank user & close ticket (German)\n`.ticketdonefr` - Thank user & close ticket (French)',
+                    inline: false
+                },
+                {
+                    name: '📊 Status Commands',
+                    value: '`.statuseng` - Product status page (English)\n`.statusdu` - Product status page (German)\n`.statusfr` - Product status page (French)',
+                    inline: false
+                },
+                {
+                    name: '🔓 Unlocker Help Commands',
+                    value: '`.unlockerhelpeng` - Unlocker video guide (English)\n`.unlockerhelpdu` - Unlocker video guide (German)\n`.unlockerhelpfr` - Unlocker video guide (French)',
+                    inline: false
+                },
+                {
+                    name: '⚙️ Setup Guide Commands',
+                    value: '`.setupguideeng` - Product setup guide (English)\n`.setupguidedu` - Product setup guide (German)\n`.setupguidefr` - Product setup guide (French)',
+                    inline: false
+                },
+                {
+                    name: '💰 Refund Process Commands',
+                    value: '`.refundprocesseng` - Refund policy & process (English)\n`.refundprocessdu` - Refund policy & process (German)\n`.refundprocessfr` - Refund policy & process (French)',
+                    inline: false
+                },
+                {
+                    name: '📝 Quick Reference',
+                    value: '`/allcmds` - View this list (ephemeral)\n`.allcmds` - Post command list publicly',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Bot Commands • Total: 25 Commands • Use . prefix for public, / for private' })
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [allCmdsEmbed], ephemeral: true });
+    }
 });
 
 client.on('messageCreate', async (message) => {
@@ -609,4 +696,90 @@ client.on('messageCreate', async (message) => {
         const refundEmbedFR = new EmbedBuilder()
             .setColor('#FFFFFF')
             .setTitle('💰 Politique de Remboursement & Processus')
-            .setDescription('Notre politique de remboursement conforme aux lois de protection des consommateurs de l\'
+            .setDescription('Notre politique de remboursement conforme aux lois de protection des consommateurs de l\'UE et d\'Allemagne.')
+            .addFields(
+                {
+                    name: '✅ Éligibilité aux Remboursements',
+                    value: '• Contenu numérique non livré en raison de problèmes techniques de notre côté\n• Produit inutilisable en raison de problèmes techniques de notre côté\n• Doit être demandé dans les 14 jours suivant l\'achat',
+                    inline: false
+                },
+                {
+                    name: '❌ Limitations de Remboursement',
+                    value: '• Les remboursements ne sont pas garantis si le produit a été consulté, téléchargé ou utilisé avec succès\n• Doit être conforme à la Directive UE 2011/83/UE sur les droits des consommateurs',
+                    inline: false
+                },
+                {
+                    name: '📧 Comment Demander',
+                    value: 'Contactez-nous à: dottywotty1234@outlook.com\nIncluez vos détails d\'achat et la raison de la demande de remboursement',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Remboursement • Droits des Consommateurs UE Protégés' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [refundEmbedFR] });
+    }
+
+    // All Commands List (Staff Only)
+    if (command === 'allcmds') {
+        const allCmdsEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🤖 All Bot Commands')
+            .setDescription('Complete list of available bot commands for support staff.')
+            .addFields(
+                {
+                    name: '📋 Support Ticket Commands',
+                    value: '`.supportticketeng` - Support requirements (English)\n`.supportticketdu` - Support requirements (German)\n`.supportticketfr` - Support requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '🔄 HWID Reset Commands',
+                    value: '`.hwidreseteng` - HWID reset requirements (English)\n`.hwidresetdu` - HWID reset requirements (German)\n`.hwidresetfr` - HWID reset requirements (French)',
+                    inline: false
+                },
+                {
+                    name: '✅ HWID Reset Done Commands',
+                    value: '`.hwidresetdoneeng` - Notify reset complete (English)\n`.hwidresetdonedu` - Notify reset complete (German)\n`.hwidresetdonefr` - Notify reset complete (French)',
+                    inline: false
+                },
+                {
+                    name: '🎉 Ticket Done Commands',
+                    value: '`.ticketdoneeng` - Thank user & close ticket (English)\n`.ticketdonedu` - Thank user & close ticket (German)\n`.ticketdonefr` - Thank user & close ticket (French)',
+                    inline: false
+                },
+                {
+                    name: '📊 Status Commands',
+                    value: '`.statuseng` - Product status page (English)\n`.statusdu` - Product status page (German)\n`.statusfr` - Product status page (French)',
+                    inline: false
+                },
+                {
+                    name: '🔓 Unlocker Help Commands',
+                    value: '`.unlockerhelpeng` - Unlocker video guide (English)\n`.unlockerhelpdu` - Unlocker video guide (German)\n`.unlockerhelpfr` - Unlocker video guide (French)',
+                    inline: false
+                },
+                {
+                    name: '⚙️ Setup Guide Commands',
+                    value: '`.setupguideeng` - Product setup guide (English)\n`.setupguidedu` - Product setup guide (German)\n`.setupguidefr` - Product setup guide (French)',
+                    inline: false
+                },
+                {
+                    name: '💰 Refund Process Commands',
+                    value: '`.refundprocesseng` - Refund policy & process (English)\n`.refundprocessdu` - Refund policy & process (German)\n`.refundprocessfr` - Refund policy & process (French)',
+                    inline: false
+                },
+                {
+                    name: '📝 Staff Commands',
+                    value: '`.allcmds` - Display all commands (Staff Only)',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Bot Commands • Total: 25 Commands • Use . prefix' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [allCmdsEmbed] });
+    }
+});
+
+client.login(process.env.DISCORD_TOKEN);
