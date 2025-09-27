@@ -197,71 +197,63 @@ function createEmbed(commandType, language = 'en') {
     return embed;
 }
 
-// Logging System
+// Simplified logging (no try/catch issues)
 async function logCommandUsage(user, commandName, startTime) {
-    try {
-        const endTime = Date.now();
-        const responseTime = endTime - startTime;
-        
-        const devChannel = client.channels.cache.get(DEV_LOG_CHANNEL_ID);
-        if (devChannel) {
-            const logEmbed = new EmbedBuilder()
-                .setColor(responseTime > 3000 ? '#FF6B6B' : responseTime > 1000 ? '#FFE66D' : '#4ECDC4')
-                .setTitle('📊 Command Usage Log')
-                .addFields(
-                    { name: '👤 User', value: `${user.username}\n\`${user.id}\``, inline: true },
-                    { name: '⚡ Command', value: `\`.${commandName}\``, inline: true },
-                    { name: '⏱️ Response Time', value: `${responseTime}ms`, inline: true }
-                )
-                .setTimestamp();
-                
-            await devChannel.send({ embeds: [logEmbed] });
-        }
-    } catch (error) {
-        console.error('Logging error:', error);
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    const devChannel = client.channels.cache.get(DEV_LOG_CHANNEL_ID);
+    if (devChannel) {
+        const logEmbed = new EmbedBuilder()
+            .setColor('#4ECDC4')
+            .setTitle('📊 Command Used')
+            .addFields(
+                { name: '👤 User', value: user.username, inline: true },
+                { name: '⚡ Command', value: `.${commandName}`, inline: true },
+                { name: '⏱️ Time', value: `${responseTime}ms`, inline: true }
+            )
+            .setTimestamp();
+            
+        devChannel.send({ embeds: [logEmbed] }).catch(() => {});
     }
 }
 
 client.on('interactionCreate', async (interaction) => {
-    try {
-        if (interaction.isChatInputCommand() && interaction.commandName === 'allcmds') {
-            const embed = new EmbedBuilder()
-                .setColor('#FFFFFF')
-                .setTitle('🤖 All Bot Commands')
-                .setDescription('Complete command list with translation system.')
-                .addFields({ 
-                    name: '📋 Commands', 
-                    value: '`.supportticket` - Support requirements\n`.hwidreset` - HWID reset requirements\n`.ticketdone` - Ticket closure message\n`.status` - Product status\n`.pleasewait` - Please wait message\n`.allcmds` - Command list' 
-                })
-                .setTimestamp();
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+    if (interaction.isChatInputCommand() && interaction.commandName === 'allcmds') {
+        const embed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('🤖 All Bot Commands')
+            .setDescription('Complete command list with translation system.')
+            .addFields({ 
+                name: '📋 Commands', 
+                value: '`.supportticket` - Support requirements\n`.hwidreset` - HWID reset requirements\n`.ticketdone` - Ticket closure message\n`.status` - Product status\n`.pleasewait` - Please wait message\n`.allcmds` - Command list' 
+            })
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed], ephemeral: true }).catch(() => {});
+    }
+
+    if (interaction.isButton() && interaction.customId.startsWith('translate_')) {
+        const language = interaction.customId.split('_')[1];
+        const originalTitle = interaction.message.embeds[0].title;
+        
+        let commandType = '';
+        if (originalTitle.includes('Support Ticket') || originalTitle.includes('Support-Ticket') || originalTitle.includes('Ticket de Support')) {
+            commandType = 'supportticket';
+        } else if (originalTitle.includes('Status') || originalTitle.includes('Produktstatus') || originalTitle.includes('Statut des Produits')) {
+            commandType = 'status';
+        } else if (originalTitle.includes('HWID Reset') || originalTitle.includes('HWID-Reset') || originalTitle.includes('Réinitialisation HWID')) {
+            commandType = 'hwidreset';
+        } else if (originalTitle.includes('Thank You') || originalTitle.includes('Vielen Dank') || originalTitle.includes('Merci')) {
+            commandType = 'ticketdone';
+        } else if (originalTitle.includes('Please Wait') || originalTitle.includes('Bitte Warten') || originalTitle.includes('Veuillez Patienter')) {
+            commandType = 'pleasewait';
         }
 
-        if (interaction.isButton() && interaction.customId.startsWith('translate_')) {
-            const language = interaction.customId.split('_')[1];
-            const originalTitle = interaction.message.embeds[0].title;
-            
-            let commandType = '';
-            if (originalTitle.includes('Support Ticket') || originalTitle.includes('Support-Ticket') || originalTitle.includes('Ticket de Support')) {
-                commandType = 'supportticket';
-            } else if (originalTitle.includes('Status') || originalTitle.includes('Produktstatus') || originalTitle.includes('Statut des Produits')) {
-                commandType = 'status';
-            } else if (originalTitle.includes('HWID Reset') || originalTitle.includes('HWID-Reset') || originalTitle.includes('Réinitialisation HWID')) {
-                commandType = 'hwidreset';
-            } else if (originalTitle.includes('Thank You') || originalTitle.includes('Vielen Dank') || originalTitle.includes('Merci')) {
-                commandType = 'ticketdone';
-            } else if (originalTitle.includes('Please Wait') || originalTitle.includes('Bitte Warten') || originalTitle.includes('Veuillez Patienter')) {
-                commandType = 'pleasewait';
-            }
-
-            if (commandType) {
-                const newEmbed = createEmbed(commandType, language);
-                const buttons = createTranslationButtons();
-                await interaction.update({ embeds: [newEmbed], components: [buttons] });
-            }
+        if (commandType) {
+            const newEmbed = createEmbed(commandType, language);
+            const buttons = createTranslationButtons();
+            await interaction.update({ embeds: [newEmbed], components: [buttons] }).catch(() => {});
         }
-    } catch (error) {
-        console.error('Interaction error:', error);
     }
 });
 
@@ -271,32 +263,28 @@ client.on('messageCreate', async (message) => {
     const startTime = Date.now();
     const command = message.content.slice(prefix.length).trim().toLowerCase();
 
-    try {
-        if (['supportticket', 'status', 'hwidreset', 'ticketdone', 'pleasewait', 'allcmds'].includes(command)) {
-            if (command === 'allcmds') {
-                const embed = new EmbedBuilder()
-                    .setColor('#FFFFFF')
-                    .setTitle('🤖 All Bot Commands')
-                    .addFields({ 
-                        name: '📋 Available Commands', 
-                        value: '`.supportticket` - Support requirements\n`.hwidreset` - HWID reset requirements\n`.ticketdone` - Ticket closure\n`.status` - Product status\n`.pleasewait` - Please wait\n`.allcmds` - This list' 
-                    })
-                    .setTimestamp();
-                
-                await message.delete();
-                await message.channel.send({ embeds: [embed] });
-            } else {
-                const embed = createEmbed(command, 'en');
-                const buttons = createTranslationButtons();
-                
-                await message.delete();
-                await message.channel.send({ embeds: [embed], components: [buttons] });
-            }
+    if (['supportticket', 'status', 'hwidreset', 'ticketdone', 'pleasewait', 'allcmds'].includes(command)) {
+        if (command === 'allcmds') {
+            const embed = new EmbedBuilder()
+                .setColor('#FFFFFF')
+                .setTitle('🤖 All Bot Commands')
+                .addFields({ 
+                    name: '📋 Available Commands', 
+                    value: '`.supportticket` - Support requirements\n`.hwidreset` - HWID reset requirements\n`.ticketdone` - Ticket closure\n`.status` - Product status\n`.pleasewait` - Please wait\n`.allcmds` - This list' 
+                })
+                .setTimestamp();
             
-            logCommandUsage(message.author, command, startTime);
+            await message.delete().catch(() => {});
+            await message.channel.send({ embeds: [embed] }).catch(() => {});
+        } else {
+            const embed = createEmbed(command, 'en');
+            const buttons = createTranslationButtons();
+            
+            await message.delete().catch(() => {});
+            await message.channel.send({ embeds: [embed], components: [buttons] }).catch(() => {});
         }
-    } catch (error) {
-        console.error('Command error:', error);
+        
+        logCommandUsage(message.author, command, startTime);
     }
 });
 
