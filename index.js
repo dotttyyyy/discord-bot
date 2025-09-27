@@ -557,7 +557,7 @@ client.on('messageCreate', async (message) => {
                 .setTitle('🤖 All Bot Commands')
                 .setDescription('Complete list of available bot commands.')
                 .addFields(
-                    { name: '📋 Commands', value: '`.supportticket` - Support requirements with translations\n`.hwidreset` - HWID reset requirements with translations\n`.hwidresetdone` - HWID reset completion notice with translations\n`.ticketdone` - Ticket closure message with translations\n`.escalated` - Escalation notice with translations\n`.pleasewait` - Please wait message with translations\n`.allcmds` - This command list', inline: false },
+                    { name: '📋 Commands', value: '`.supportticket` - Support requirements with translations\n`.hwidreset` - HWID reset requirements with translations\n`.hwidresetdone` - HWID reset completion notice with translations\n`.ticketdone` - Ticket closure message with translations\n`.escalated` - Escalation notice with translations\n`.status` - Product status page with translations\n`.unlockerhelp` - Unlocker video guide with translations\n`.setupguide` - Product setup documentation with translations\n`.refundprocess` - Refund policy information with translations\n`.pleasewait` - Please wait message with translations\n`.allcmds` - This command list', inline: false },
                     { name: '🌍 Translation Feature', value: 'All commands include translation buttons (🇺🇸 🇩🇪 🇫🇷)', inline: false }
                 )
                 .setFooter({ text: 'Commands auto-delete your message' })
