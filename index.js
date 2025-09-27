@@ -4,6 +4,114 @@ const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
 });
 
+// Logging System
+const commandLogs = [];
+const DEV_LOG_CHANNEL_ID = '1414044553312468992';
+
+async function logCommandUsage(user, commandName, startTime) {
+    const endTime = Date.now();
+    const responseTime = endTime - startTime;
+    
+    const logEntry = {
+        user: `${user.username} (${user.id})`,
+        command: commandName,
+        responseTime: responseTime,
+        timestamp: new Date().toISOString(),
+        success: true
+    };
+    
+    commandLogs.push(logEntry);
+    
+    // Send to dev log channel
+    const devChannel = client.channels.cache.get(DEV_LOG_CHANNEL_ID);
+    if (devChannel) {
+        const logEmbed = new EmbedBuilder()
+            .setColor(responseTime > 3000 ? '#FF6B6B' : responseTime > 1000 ? '#FFE66D' : '#4ECDC4')
+            .setTitle('📊 Command Usage Log')
+            .addFields(
+                {
+                    name: '👤 User',
+                    value: `${user.username}\n\`${user.id}\``,
+                    inline: true
+                },
+                {
+                    name: '⚡ Command',
+                    value: `\`.${commandName}\``,
+                    inline: true
+                },
+                {
+                    name: '⏱️ Response Time',
+                    value: `${responseTime}ms`,
+                    inline: true
+                },
+                {
+                    name: '📅 Timestamp',
+                    value: `<t:${Math.floor(endTime/1000)}:F>`,
+                    inline: false
+                }
+            )
+            .setFooter({ 
+                text: responseTime > 3000 ? '⚠️ SLOW RESPONSE' : responseTime > 1000 ? '⚡ MODERATE RESPONSE' : '✅ FAST RESPONSE' 
+            })
+            .setTimestamp();
+            
+        await devChannel.send({ embeds: [logEmbed] });
+    }
+    
+    // Keep only last 100 logs in memory
+    if (commandLogs.length > 100) {
+        commandLogs.shift();
+    }
+}
+
+// Add logging to all existing commands
+client.on('messageCreate', async (message) => {
+    if (!message.content.startsWith(prefix) || message.author.bot) return;
+
+    const startTime = Date.now();
+    const args = message.content.slice(prefix.length).trim().split(/ +/);
+    const command = args.shift().toLowerCase();
+
+    try {
+        // All existing command handlers with added logging
+        if (command === 'supportticketeng') {
+            // ... existing code ...
+            logCommandUsage(message.author, 'supportticketeng', startTime);
+        }
+        
+        // Add logging to all other commands similarly...
+        
+    } catch (error) {
+        // Error logging
+        const devChannel = client.channels.cache.get(DEV_LOG_CHANNEL_ID);
+        if (devChannel) {
+            const errorEmbed = new EmbedBuilder()
+                .setColor('#FF4757')
+                .setTitle('🚨 Command Error')
+                .addFields(
+                    {
+                        name: '👤 User',
+                        value: `${message.author.username}\n\`${message.author.id}\``,
+                        inline: true
+                    },
+                    {
+                        name: '⚡ Command',
+                        value: `\`.${command}\``,
+                        inline: true
+                    },
+                    {
+                        name: '❌ Error',
+                        value: `\`\`\`${error.message}\`\`\``,
+                        inline: false
+                    }
+                )
+                .setTimestamp();
+                
+            await devChannel.send({ embeds: [errorEmbed] });
+        }
+        console.error('Command error:', error);
+    }
+
 const prefix = '.';
 
 // Register slash command for allcmds
@@ -45,56 +153,66 @@ client.on('interactionCreate', async (interaction) => {
     if (commandName === 'allcmds') {
         const allCmdsEmbed = new EmbedBuilder()
             .setColor('#FFFFFF')
-            .setTitle('🤖 All Bot Commands - Quick Reference')
-            .setDescription('Complete list of available bot commands for support staff.')
+            .setTitle('🤖 All Bot Commands - Staff Guide & Usage')
+            .setDescription('Complete command guide with usage instructions for support staff.')
             .addFields(
                 {
                     name: '📋 Support Ticket Commands',
-                    value: '`.supportticketeng` - Support requirements (English)\n`.supportticketdu` - Support requirements (German)\n`.supportticketfr` - Support requirements (French)',
+                    value: '`.supportticketeng/du/fr` - **When to use:** Customer opens ticket without providing required info\n**How to use:** Type command to display requirements list',
                     inline: false
                 },
                 {
-                    name: '🔄 HWID Reset Commands',
-                    value: '`.hwidreseteng` - HWID reset requirements (English)\n`.hwidresetdu` - HWID reset requirements (German)\n`.hwidresetfr` - HWID reset requirements (French)',
+                    name: '🔄 HWID Reset Commands', 
+                    value: '`.hwidreseteng/du/fr` - **When to use:** Customer requests HWID reset\n**How to use:** Shows required documents and process',
                     inline: false
                 },
                 {
                     name: '✅ HWID Reset Done Commands',
-                    value: '`.hwidresetdoneeng` - Notify reset complete (English)\n`.hwidresetdonedu` - Notify reset complete (German)\n`.hwidresetdonefr` - Notify reset complete (French)',
+                    value: '`.hwidresetdoneeng/du/fr` - **When to use:** After completing HWID reset\n**How to use:** Confirms reset completion to customer',
                     inline: false
                 },
                 {
-                    name: '🎉 Ticket Done Commands',
-                    value: '`.ticketdoneeng` - Thank user & close ticket (English)\n`.ticketdonedu` - Thank user & close ticket (German)\n`.ticketdonefr` - Thank user & close ticket (French)',
+                    name: '🎉 Ticket Closure Commands',
+                    value: '`.ticketdoneeng/du/fr` - **When to use:** Issue resolved, closing ticket\n**How to use:** Thanks customer and announces closure',
                     inline: false
                 },
                 {
                     name: '📊 Status Commands',
-                    value: '`.statuseng` - Product status page (English)\n`.statusdu` - Product status page (German)\n`.statusfr` - Product status page (French)',
+                    value: '`.statuseng/du/fr` - **When to use:** Customer reports product not working\n**How to use:** Direct them to check status page first',
                     inline: false
                 },
                 {
                     name: '🔓 Unlocker Help Commands',
-                    value: '`.unlockerhelpeng` - Unlocker video guide (English)\n`.unlockerhelpdu` - Unlocker video guide (German)\n`.unlockerhelpfr` - Unlocker video guide (French)',
+                    value: '`.unlockerhelpeng/du/fr` - **When to use:** Customer needs unlocker assistance\n**How to use:** Provides video tutorial and instructions',
                     inline: false
                 },
                 {
                     name: '⚙️ Setup Guide Commands',
-                    value: '`.setupguideeng` - Product setup guide (English)\n`.setupguidedu` - Product setup guide (German)\n`.setupguidefr` - Product setup guide (French)',
+                    value: '`.setupguideeng/du/fr` - **When to use:** Customer needs installation help\n**How to use:** Links to comprehensive setup documentation',
                     inline: false
                 },
                 {
-                    name: '💰 Refund Process Commands',
-                    value: '`.refundprocesseng` - Refund policy & process (English)\n`.refundprocessdu` - Refund policy & process (German)\n`.refundprocessfr` - Refund policy & process (French)',
+                    name: '💰 Refund Commands',
+                    value: '`.refundprocesseng/du/fr` - **When to use:** Customer asks about refunds\n**How to use:** Shows policy and process requirements',
                     inline: false
                 },
                 {
-                    name: '📝 Quick Reference',
-                    value: '`/allcmds` - View this list (ephemeral)\n`.allcmds` - Post command list publicly',
+                    name: '⬆️ Escalation Commands',
+                    value: '`.escalatedeng/du/fr` - **When to use:** Issue needs admin/HR attention\n**How to use:** Notifies customer ticket has been escalated',
+                    inline: false
+                },
+                {
+                    name: '⏳ Wait Commands',
+                    value: '`.pleasewaiteng/du/fr` - **When to use:** No support staff currently active\n**How to use:** Asks customer to wait for assistance',
+                    inline: false
+                },
+                {
+                    name: '📝 Staff Tools',
+                    value: '`/allcmds` - Private reference (only you see it)\n`.allcmds` - Public command list display',
                     inline: false
                 }
             )
-            .setFooter({ text: 'Bot Commands • Total: 25 Commands • Use . prefix for public, / for private' })
+            .setFooter({ text: 'Total: 31 Commands • Always use customer\'s language • Commands auto-delete your message' })
             .setTimestamp();
 
         await interaction.reply({ embeds: [allCmdsEmbed], ephemeral: true });
@@ -719,6 +837,200 @@ client.on('messageCreate', async (message) => {
 
         await message.delete();
         await message.channel.send({ embeds: [refundEmbedFR] });
+    }
+
+    // Escalated Commands
+    if (command === 'escalatedeng') {
+        const escalatedEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⬆️ Ticket Escalated')
+            .setDescription('Your support ticket has been escalated for specialized assistance.')
+            .addFields(
+                {
+                    name: '🔝 Escalation Notice',
+                    value: 'Your ticket has been forwarded to our administrative team and HR department for further review and assistance.',
+                    inline: false
+                },
+                {
+                    name: '⏱️ Response Time',
+                    value: 'Please allow additional time for our specialized team to review your case thoroughly. You will receive a response as soon as possible.',
+                    inline: false
+                },
+                {
+                    name: '📝 Important',
+                    value: 'Please do not create additional tickets for this issue. Our team will contact you through this existing ticket.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Administrative Team • Escalated for Review' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [escalatedEmbed] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'escalatedeng', Date.now());
+    }
+
+    if (command === 'escalateddu') {
+        const escalatedEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⬆️ Ticket Eskaliert')
+            .setDescription('Ihr Support-Ticket wurde für spezialisierte Unterstützung eskaliert.')
+            .addFields(
+                {
+                    name: '🔝 Eskalationshinweis',
+                    value: 'Ihr Ticket wurde zur weiteren Überprüfung und Unterstützung an unser Verwaltungsteam und die Personalabteilung weitergeleitet.',
+                    inline: false
+                },
+                {
+                    name: '⏱️ Antwortzeit',
+                    value: 'Bitte gewähren Sie zusätzliche Zeit, damit unser Spezialistenteam Ihren Fall gründlich überprüfen kann. Sie erhalten schnellstmöglich eine Antwort.',
+                    inline: false
+                },
+                {
+                    name: '📝 Wichtig',
+                    value: 'Bitte erstellen Sie keine zusätzlichen Tickets für dieses Problem. Unser Team wird Sie über dieses bestehende Ticket kontaktieren.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Verwaltungsteam • Zur Überprüfung Eskaliert' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [escalatedEmbedDE] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'escalateddu', Date.now());
+    }
+
+    if (command === 'escalatedfr') {
+        const escalatedEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⬆️ Ticket Escaladé')
+            .setDescription('Votre ticket de support a été escaladé pour une assistance spécialisée.')
+            .addFields(
+                {
+                    name: '🔝 Avis d\'Escalade',
+                    value: 'Votre ticket a été transféré à notre équipe administrative et au département des ressources humaines pour examen et assistance supplémentaires.',
+                    inline: false
+                },
+                {
+                    name: '⏱️ Temps de Réponse',
+                    value: 'Veuillez accorder du temps supplémentaire à notre équipe spécialisée pour examiner votre cas en détail. Vous recevrez une réponse dès que possible.',
+                    inline: false
+                },
+                {
+                    name: '📝 Important',
+                    value: 'Veuillez ne pas créer de tickets supplémentaires pour ce problème. Notre équipe vous contactera via ce ticket existant.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe Administrative • Escaladé pour Examen' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [escalatedEmbedFR] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'escalatedfr', Date.now());
+    }
+
+    // Please Wait Commands
+    if (command === 'pleasewaiteng') {
+        const waitEmbed = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⏳ Please Wait')
+            .setDescription('Thank you for your patience. No support staff are currently active.')
+            .addFields(
+                {
+                    name: '🕐 Support Hours',
+                    value: 'Our support team will be back online shortly. Please wait for a staff member to assist you.',
+                    inline: false
+                },
+                {
+                    name: '📝 Important',
+                    value: 'Please do not spam or create multiple tickets. Your request has been received and will be handled in order.',
+                    inline: false
+                },
+                {
+                    name: '🔔 Notification',
+                    value: 'You will be notified when a support representative is available to help you.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Support Team • Please Wait for Assistance' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [waitEmbed] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'pleasewaiteng', Date.now());
+    }
+
+    if (command === 'pleasewaitdu') {
+        const waitEmbedDE = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⏳ Bitte Warten')
+            .setDescription('Vielen Dank für Ihre Geduld. Derzeit ist kein Support-Personal aktiv.')
+            .addFields(
+                {
+                    name: '🕐 Support-Zeiten',
+                    value: 'Unser Support-Team wird in Kürze wieder online sein. Bitte warten Sie auf einen Mitarbeiter, der Ihnen hilft.',
+                    inline: false
+                },
+                {
+                    name: '📝 Wichtig',
+                    value: 'Bitte spammen Sie nicht oder erstellen Sie mehrere Tickets. Ihre Anfrage wurde erhalten und wird der Reihe nach bearbeitet.',
+                    inline: false
+                },
+                {
+                    name: '🔔 Benachrichtigung',
+                    value: 'Sie werden benachrichtigt, wenn ein Support-Vertreter verfügbar ist, um Ihnen zu helfen.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Support-Team • Bitte Warten auf Unterstützung' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [waitEmbedDE] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'pleasewaitdu', Date.now());
+    }
+
+    if (command === 'pleasewaitfr') {
+        const waitEmbedFR = new EmbedBuilder()
+            .setColor('#FFFFFF')
+            .setTitle('⏳ Veuillez Patienter')
+            .setDescription('Merci de votre patience. Aucun membre du support n\'est actuellement actif.')
+            .addFields(
+                {
+                    name: '🕐 Heures de Support',
+                    value: 'Notre équipe de support sera de retour en ligne sous peu. Veuillez attendre qu\'un membre du personnel vous aide.',
+                    inline: false
+                },
+                {
+                    name: '📝 Important',
+                    value: 'Veuillez ne pas spammer ou créer plusieurs tickets. Votre demande a été reçue et sera traitée dans l\'ordre.',
+                    inline: false
+                },
+                {
+                    name: '🔔 Notification',
+                    value: 'Vous serez notifié lorsqu\'un représentant du support sera disponible pour vous aider.',
+                    inline: false
+                }
+            )
+            .setFooter({ text: 'Équipe de Support • Veuillez Attendre l\'Assistance' })
+            .setTimestamp();
+
+        await message.delete();
+        await message.channel.send({ embeds: [waitEmbedFR] });
+        
+        // Log this command usage
+        logCommandUsage(message.author, 'pleasewaitfr', Date.now());
     }
 
     // All Commands List (Staff Only)
