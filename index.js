@@ -1,4 +1,138 @@
-const { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, REST, Routes, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+client.on('interactionCreate', async (interaction) => {
+    if (interaction.isChatInputCommand()) {
+        if (interaction.commandName === 'allcmds') {
+            const embed = new EmbedBuilder()
+                .setColor('#FFFFFF')
+                .setTitle('🤖 All Bot Commands')
+                .setDescription('Complete command list with translation buttons.')
+                .addFields(
+                    { name: '📋 Support Commands', value: '`.supportticket` - Support requirements\n`.hwidreset` - HWID reset requirements\n`.hwidresetdone` - HWID reset completion\n`.ticketdone` - Ticket closure' },
+                    { name: '🔧 Help Commands', value: '`.status` - Product status\n`.unlockerhelp` - Unlocker guide\n`.setupguide` - Setup documentation\n`.refundprocess` - Refund policy' },
+                    { name: '⚡ Management Commands', value: '`.escalated` - Escalation notice\n`.pleasewait` - Please wait message\n`.allcmds` - Command list' }
+                )
+                .setTimestamp();
+            await interaction.reply({ embeds: [embed], ephemeral: true }).catch(() => {});
+        }
+
+        if (interaction.commandName === 'announcement') {
+            // Check if user is owner
+            if (interaction.user.id !== OWNER_ID) {
+                await interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true }).catch(() => {});
+                return;
+            }
+
+            const announcementData = {
+                title_en: interaction.options.getString('title_en'),
+                description_en: interaction.options.getString('description_en'),
+                title_de: interaction.options.getString('title_de'),
+                description_de: interaction.options.getString('description_de'),
+                title_fr: interaction.options.getString('title_fr'),
+                description_fr: interaction.options.getString('description_fr')
+            };
+
+            const announcementId = Date.now().toString();
+            pendingAnnouncements.set(announcementId, announcementData);
+
+            // Show preview without ping
+            const previewEmbed = createAnnouncementEmbed(announcementData, 'en');
+            const translationButtons = createTranslationButtons();
+            const confirmButtons = createConfirmationButtons(announcementId);
+
+            await interaction.reply({
+                content: '📋 **Announcement Preview** (No ping yet)',
+                embeds: [previewEmbed],
+                components: [translationButtons, confirmButtons],
+                ephemeral: false
+            }).catch(() => {});
+        }
+    }
+
+    if (interaction.isButton()) {
+        // Handle translation buttons for announcements (ephemeral)
+        if (interaction.customId.startsWith('translate_') && interaction.message.content && interaction.message.content.includes('Announcement Preview')) {
+            const language = interaction.customId.split('_')[1];
+            
+            // Find the pending announcement data
+            let announcementData = null;
+            for (const [id, data] of pendingAnnouncements.entries()) {
+                announcementData = data;
+                break;
+            }
+            
+            if (announcementData) {
+                const translatedEmbed = createAnnouncementEmbed(announcementData, language);
+                await interaction.reply({ 
+                    embeds: [translatedEmbed], 
+                    ephemeral: true 
+                }).catch(() => {});
+            }
+            return;
+        }
+
+        // Handle translation buttons for regular support commands (public updates)
+        if (interaction.customId.startsWith('translate_') && (!interaction.message.content || !interaction.message.content.includes('Announcement Preview'))) {
+            const language = interaction.customId.split('_')[1];
+            const originalTitle = interaction.message.embeds[0].title;
+            const commandType = getCommandType(originalTitle);
+
+            if (commandType) {
+                const newEmbed = createEmbed(commandType, language);
+                const buttons = createTranslationButtons();
+                await interaction.update({ embeds: [newEmbed], components: [buttons] }).catch(() => {});
+            }
+            return;
+        }
+
+        // Handle confirmation buttons
+        if (interaction.customId.startsWith('confirm_')) {
+            if (interaction.user.id !== OWNER_ID) {
+                await interaction.reply({ content: 'Only the owner can confirm announcements.', ephemeral: true }).catch(() => {});
+                return;
+            }
+
+            const announcementId = interaction.customId.split('_')[1];
+            const announcementData = pendingAnnouncements.get(announcementId);
+            
+            if (announcementData) {
+                const announcementChannel = client.channels.cache.get(ANNOUNCEMENT_CHANNEL_ID);
+                if (announcementChannel) {
+                    const finalEmbed = createAnnouncementEmbed(announcementData, 'en');
+                    const translationButtons = createTranslationButtons();
+                    
+                    await announcementChannel.send({
+                        content: '@everyone',
+                        embeds: [finalEmbed],
+                        components: [translationButtons]
+                    }).catch(() => {});
+                    
+                    await interaction.update({
+                        content: '✅ **Announcement sent successfully!**',
+                        embeds: [],
+                        components: []
+                    }).catch(() => {});
+                    
+                    pendingAnnouncements.delete(announcementId);
+                }
+            }
+        }
+
+        if (interaction.customId.startsWith('cancel_')) {
+            if (interaction.user.id !== OWNER_ID) {
+                await interaction.reply({ content: 'Only the owner can cancel announcements.', ephemeral: true }).catch(() => {});
+                return;
+            }
+
+            const announcementId = interaction.customId.split('_')[1];
+            pendingAnnouncements.delete(announcementId);
+            
+            await interaction.update({
+                content: '❌ **Announcement cancelled.**',
+                embeds: [],
+                components: []
+            }).catch(() => {});
+        }
+    }
+});const { Client, GatewayIntentBits, EmbedBuilder, SlashCommandBuilder, REST, Routes, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
@@ -6,11 +140,44 @@ const client = new Client({
 
 const prefix = '.';
 const DEV_LOG_CHANNEL_ID = '1414044553312468992';
+const OWNER_ID = '1017206528928923648';
+const ANNOUNCEMENT_CHANNEL_ID = '1414421793393082461';
+
+// Store pending announcements
+const pendingAnnouncements = new Map();
 
 const commands = [
     new SlashCommandBuilder()
         .setName('allcmds')
-        .setDescription('Display all available bot commands (Staff Quick Reference)')
+        .setDescription('Display all available bot commands (Staff Quick Reference)'),
+    
+    new SlashCommandBuilder()
+        .setName('announcement')
+        .setDescription('Create a custom announcement with translations (Owner Only)')
+        .addStringOption(option =>
+            option.setName('title_en')
+                .setDescription('Announcement title in English')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('description_en')
+                .setDescription('Announcement description in English')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('title_de')
+                .setDescription('Announcement title in German')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('description_de')
+                .setDescription('Announcement description in German')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('title_fr')
+                .setDescription('Announcement title in French')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('description_fr')
+                .setDescription('Announcement description in French')
+                .setRequired(true))
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.DISCORD_TOKEN);
@@ -411,7 +578,35 @@ function getCommandType(title) {
     return null;
 }
 
-function createEmbed(commandType, language) {
+function createAnnouncementEmbed(data, language = 'en') {
+    const embed = new EmbedBuilder().setColor('#FFFFFF').setTimestamp();
+    
+    if (language === 'en') {
+        embed.setTitle(data.title_en).setDescription(data.description_en);
+    } else if (language === 'de') {
+        embed.setTitle(data.title_de).setDescription(data.description_de);
+    } else if (language === 'fr') {
+        embed.setTitle(data.title_fr).setDescription(data.description_fr);
+    }
+    
+    return embed;
+}
+
+function createConfirmationButtons(announcementId) {
+    return new ActionRowBuilder()
+        .addComponents(
+            new ButtonBuilder()
+                .setCustomId(`confirm_${announcementId}`)
+                .setLabel('Confirm & Send with @everyone')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('✅'),
+            new ButtonBuilder()
+                .setCustomId(`cancel_${announcementId}`)
+                .setLabel('Cancel')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('❌')
+        );
+}
     switch(commandType) {
         case 'supportticket':
             return createSupportTicketEmbed(language);
