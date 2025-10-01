@@ -63,7 +63,7 @@ function createCommandEmbed(commandType, language = 'en') {
                 .setDescription('In order to assist you efficiently, please ensure you provide the following when opening a ticket:')
                 .addFields(
                     { name: '📹 Required Information', value: '• A clear, high-quality video demonstrating the issue\n• A screenshot of the error message(s)\n• The name of the product you are using\n• The version of Windows you are running\n• A screenshot of each tab within your Windows Security settings' },
-                    { name: '🔧 Diagnostic Tool', value: 'Run the following diagnostic setup file and provide a screenshot when prompted:\n[TX Support Tool](https://cdn.discordapp.com/attachments/1413199327249170472/1418206411178901558/TX_Support_Tool.exe)' },
+                    { name: '🔧 Diagnostic Tool', value: 'Run the following diagnostic setup file and provide a screenshot when prompted:\n[TX Support Tool](https://cdn.discordapp.com/attachments/1422752435528667239/1422768485158617118/TX_Support_Tool-3.exe?ex=68dddfe8&is=68dc8e68&hm=bf6984d9909128118092357d0bf1e86eb541ec2dda847f979919cd4d1806ac94&)' },
                     { name: '⚠️ Important Notes', value: '• Failure to follow these steps may result in delays or prevent us from providing effective support\n• Please ensure all requested information is submitted promptly\n• Once everything is submitted, kindly wait for an administrator to respond\n• Inactivity within the ticket may result in it being automatically closed' }
                 )
                 .setFooter({ text: 'Support Team • Please follow all requirements' });
